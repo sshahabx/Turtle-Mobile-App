@@ -1,0 +1,482 @@
+# Implementation Plan
+
+- [x] 1. Initialize Expo project and configure development environment
+  - [x] 1.1 Create new Expo project with TypeScript template
+    - Run `npx create-expo-app@latest Mobile-App --template expo-template-blank-typescript`
+    - Configure app.json with app name, slug, and bundle identifiers
+    - _Requirements: N/A (Setup)_
+  - [x] 1.2 Install and configure core dependencies
+    - Install expo-router, @tanstack/react-query, zustand, axios, expo-secure-store
+    - Install nativewind and tailwindcss, configure babel and tailwind.config.js
+    - Install react-native-reanimated and react-native-gesture-handler
+    - _Requirements: N/A (Setup)_
+  - [x] 1.3 Set up project directory structure
+    - Create app/, components/, features/, services/, store/, hooks/, utils/, types/ directories
+    - Create feature subdirectories for auth, jobs, notes, tasks, habits
+    - _Requirements: N/A (Setup)_
+  - [x] 1.4 Configure TypeScript and ESLint
+    - Update tsconfig.json with strict mode and path aliases
+    - Configure ESLint with React Native and TypeScript rules
+    - _Requirements: N/A (Setup)_
+
+- [x] 2. Implement core types and utilities
+  - [x] 2.1 Create shared type definitions
+    - Define Job, JobStatus, JobCreateInput, JobUpdateInput interfaces
+    - Define Note, NoteCreateInput, NoteUpdateInput interfaces
+    - Define Task, TaskStatus, TaskCreateInput, TaskUpdateInput interfaces
+    - Define Habit, HabitEntry, HabitCreateInput interfaces
+    - Define User interface
+    - _Requirements: 17.1_
+  - [x] 2.2 Create date utility functions
+    - Implement formatDate, formatRelativeDate, isToday, parseISODate functions
+    - Implement date serialization for API requests
+    - _Requirements: 17.3, 17.4_
+  - [ ]* 2.3 Write property test for date serialization round-trip
+    - **Property 28: API response serialization round-trip**
+    - **Validates: Requirements 17.3**
+  - [x] 2.4 Create validation utility functions
+    - Implement isNonEmptyString, validateJobInput, validateNoteInput, validateTaskInput
+    - _Requirements: 3.3_
+  - [ ]* 2.5 Write property test for form validation
+    - **Property 6: Form validation rejects empty required fields**
+    - **Validates: Requirements 3.3**
+
+- [x] 3. Implement API client layer
+  - [x] 3.1 Create Axios instance with interceptors
+    - Configure base URL from environment
+    - Add request interceptor to attach Authorization header
+    - Add response interceptor for error handling and token refresh
+    - _Requirements: 16.4, 16.1, 16.2, 16.3_
+  - [ ]* 3.2 Write property test for auth header inclusion
+    - **Property 27: Auth token in request headers**
+    - **Validates: Requirements 16.4**
+  - [x] 3.3 Create API response transformers
+    - Implement parseJobResponse, parseNoteResponse, parseTaskResponse, parseHabitResponse
+    - Handle date string to Date object conversion
+    - _Requirements: 17.2, 17.4_
+  - [x] 3.4 Create API endpoint constants and typed service methods
+    - Define endpoint URLs for jobs, notes, tasks, habits, user, auth
+    - Create typed service functions for each endpoint
+    - _Requirements: 17.1, 17.2_
+
+- [x] 4. Implement secure storage service
+  - [x] 4.1 Create SecureStore wrapper for token management
+    - Implement storeToken, getToken, clearToken functions
+    - Handle storage errors gracefully
+    - _Requirements: 1.3, 1.6_
+  - [x] 4.2 Create AsyncStorage wrapper for preferences
+    - Implement storePreference, getPreference functions for UI state
+    - _Requirements: 11.4_
+
+- [x] 5. Implement Zustand stores
+  - [x] 5.1 Create auth store
+    - Define user, isAuthenticated, isLoading state
+    - Implement setUser, setAuthenticated, reset actions
+    - _Requirements: 1.1, 1.5_
+  - [x] 5.2 Create UI preferences store with persistence
+    - Define sortBy, viewMode, expandedSections state
+    - Implement setSortBy, setViewMode, toggleSection actions
+    - Configure persist middleware with AsyncStorage
+    - _Requirements: 11.4_
+  - [ ]* 5.3 Write property test for preferences persistence
+    - **Property 22: Preferences persistence**
+    - **Validates: Requirements 11.4**
+
+- [x] 6. Implement authentication feature
+  - [x] 6.1 Create auth service with OAuth flow
+    - Implement signInWithGoogle using expo-auth-session
+    - Implement signInWithGitHub using expo-auth-session
+    - Implement signOut to clear tokens and reset state
+    - Implement token refresh logic
+    - _Requirements: 1.2, 1.3, 1.6, 1.7_
+  - [x] 6.2 Create useAuth hook
+    - Expose signIn, signOut, isAuthenticated, isLoading
+    - Handle auto-login on app start
+    - _Requirements: 1.1, 1.5_
+  - [ ]* 6.3 Write property test for authentication state navigation
+    - **Property 1: Authentication state determines navigation**
+    - **Validates: Requirements 1.1, 1.5**
+  - [ ]* 6.4 Write property test for sign-out behavior
+    - **Property 2: Sign-out clears authentication**
+    - **Validates: Requirements 1.6**
+  - [ ]* 6.5 Write property test for 401 handling
+    - **Property 26: 401 response triggers sign-out**
+    - **Validates: Requirements 16.1**
+
+- [ ] 7. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 8. Implement jobs feature service and hooks
+  - [x] 8.1 Create jobs service
+    - Implement getJobs, getJob, createJob, updateJob, deleteJob API calls
+    - Apply response transformers for date parsing
+    - _Requirements: 2.1, 3.2, 4.4, 4.6_
+  - [x] 8.2 Create useJobs hook with React Query
+    - Configure queries for job list and individual jobs
+    - Implement mutations with optimistic updates for create, update, delete
+    - Handle mutation rollback on failure
+    - _Requirements: 3.2, 3.5, 4.4, 4.6, 5.2, 5.5_
+  - [ ]* 8.3 Write property test for optimistic update rollback
+    - **Property 8: Optimistic update rollback on failure**
+    - **Validates: Requirements 3.5, 5.5**
+  - [x] 8.4 Create job grouping utility function
+    - Implement groupJobsByStatus function
+    - _Requirements: 2.1, 2.2_
+  - [ ]* 8.5 Write property test for job grouping accuracy
+    - **Property 3: Job grouping by status is accurate**
+    - **Validates: Requirements 2.2, 7.2**
+  - [x] 8.6 Create job sorting utility function
+    - Implement sortJobs function with date, title, company options
+    - _Requirements: 11.1, 11.2_
+  - [ ]* 8.7 Write property test for sorting
+    - **Property 21: Sort option changes list order**
+    - **Validates: Requirements 11.2**
+
+- [x] 9. Implement notes feature
+  - [x] 9.1 Create notes service
+    - Implement getNotes, getNote, createNote, updateNote, deleteNote API calls
+    - _Requirements: 8.1, 8.3, 8.5, 8.6_
+  - [x] 9.2 Create useNotes hook with React Query
+    - Configure queries and mutations with optimistic updates
+    - _Requirements: 8.1, 8.3, 8.5, 8.6_
+  - [x] 9.3 Create notes sorting utility
+    - Implement sortNotesByUpdatedAt function
+    - _Requirements: 8.1_
+  - [ ]* 9.4 Write property test for notes sorting
+    - **Property 16: Notes sorted by update time**
+    - **Validates: Requirements 8.1**
+
+- [x] 10. Implement tasks feature
+  - [x] 10.1 Create tasks service
+    - Implement getTasks, createTask, updateTask, deleteTask API calls
+    - _Requirements: 9.1, 9.3, 9.4, 9.5_
+  - [x] 10.2 Create useTasks hook with React Query
+    - Configure queries and mutations
+    - Implement status toggle mutation
+    - _Requirements: 9.1, 9.3, 9.4_
+  - [ ]* 10.3 Write property test for task status toggle
+    - **Property 18: Task status toggle**
+    - **Validates: Requirements 9.4**
+  - [x] 10.4 Create tasks sorting utility
+    - Implement sortTasksByStatusAndDueDate function
+    - _Requirements: 9.1_
+  - [ ]* 10.5 Write property test for tasks sorting
+    - **Property 17: Tasks sorted by status and due date**
+    - **Validates: Requirements 9.1**
+
+- [x] 11. Implement habits feature
+  - [x] 11.1 Create habits service
+    - Implement getHabits, createHabit, updateHabit, deleteHabit, completeHabit API calls
+    - _Requirements: 10.1, 10.2, 10.3, 10.5_
+  - [x] 11.2 Create useHabits hook with React Query
+    - Configure queries and mutations
+    - Implement completion mutation with streak update
+    - _Requirements: 10.1, 10.3_
+  - [ ]* 11.3 Write property test for habit completion
+    - **Property 19: Habit completion creates entry**
+    - **Validates: Requirements 10.3**
+  - [x] 11.4 Create habit completion status utility
+    - Implement isCompletedToday function
+    - _Requirements: 10.6_
+  - [ ]* 11.5 Write property test for completed habit state
+    - **Property 20: Completed habit disables button**
+    - **Validates: Requirements 10.6**
+
+- [ ] 12. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 13. Implement base UI components
+  - [x] 13.1 Create Button component with variants
+    - Implement primary, secondary, outline, ghost variants
+    - Add loading state and disabled state
+    - _Requirements: N/A (UI Foundation)_
+  - [x] 13.2 Create Card component
+    - Implement with NativeWind styling
+    - Support pressable variant for list items
+    - _Requirements: N/A (UI Foundation)_
+  - [x] 13.3 Create Input and TextArea components
+    - Implement with label, error state, and validation feedback
+    - _Requirements: 3.3_
+  - [x] 13.4 Create Badge component for status display
+    - Implement StatusBadge with color coding per JobStatus
+    - _Requirements: 2.4, 5.1_
+  - [x] 13.5 Create Skeleton loading components
+    - Implement SkeletonCard, SkeletonList for loading states
+    - _Requirements: 14.3_
+  - [ ]* 13.6 Write property test for skeleton display during loading
+    - **Property 25: Loading shows skeleton**
+    - **Validates: Requirements 14.3**
+  - [x] 13.7 Create Toast notification component
+    - Implement success, error, info variants
+    - _Requirements: 3.4, 3.5_
+
+- [x] 14. Implement navigation structure
+  - [x] 14.1 Create root layout with providers
+    - Set up QueryClientProvider, theme provider
+    - Configure navigation container
+    - _Requirements: N/A (Navigation)_
+  - [x] 14.2 Create auth layout and sign-in screen
+    - Implement sign-in screen with Google and GitHub buttons
+    - Handle OAuth redirect
+    - _Requirements: 1.1, 1.2_
+  - [x] 14.3 Create tabs layout with bottom navigation
+    - Configure tabs for Dashboard, Notes, Tasks, Habits
+    - Style tab bar with NativeWind
+    - _Requirements: N/A (Navigation)_
+  - [x] 14.4 Implement auth guard for protected routes
+    - Redirect to sign-in if not authenticated
+    - _Requirements: 1.1, 1.5_
+
+- [x] 15. Implement dashboard screen
+  - [x] 15.1 Create StatsHeader component
+    - Display total applications, interviews, offers counts
+    - _Requirements: 7.1, 7.2_
+  - [x] 15.2 Create DailyProgress component
+    - Display progress bar with current count and goal
+    - Implement goal setting modal trigger
+    - _Requirements: 6.1, 6.5_
+  - [ ]* 15.3 Write property test for daily progress calculation
+    - **Property 14: Daily progress calculation**
+    - **Validates: Requirements 6.5**
+  - [x] 15.4 Create AcceptedJobBanner component
+    - Display accepted job prominently at top
+    - Show offer details (salary, benefits)
+    - _Requirements: 2.5_
+  - [ ]* 15.5 Write property test for accepted jobs ordering
+    - **Property 5: Accepted jobs appear first**
+    - **Validates: Requirements 2.5**
+  - [x] 15.6 Create StatusAccordion component
+    - Implement collapsible sections per status
+    - Display job count per section
+    - Use Reanimated for smooth expand/collapse
+    - _Requirements: 2.1, 2.2, 2.3_
+  - [x] 15.7 Create JobCard component
+    - Display title, company, date
+    - Handle press to navigate to detail
+    - _Requirements: 2.4_
+  - [ ]* 15.8 Write property test for job item display
+    - **Property 4: Job item display contains required fields**
+    - **Validates: Requirements 2.4**
+  - [x] 15.9 Create EmptyState component for no jobs
+    - Display guidance message and add button
+    - _Requirements: 2.6_
+  - [x] 15.10 Assemble dashboard screen
+    - Combine all dashboard components
+    - Implement pull-to-refresh
+    - Add FAB for adding new job
+    - _Requirements: 2.1, 14.5_
+
+- [x] 16. Implement job detail and forms
+  - [x] 16.1 Create job detail screen
+    - Display all job fields
+    - Show status update buttons
+    - Add edit and delete actions
+    - _Requirements: 4.1, 4.2, 5.1_
+  - [ ]* 16.2 Write property test for status buttons availability
+    - **Property 11: Status buttons availability**
+    - **Validates: Requirements 5.1**
+  - [x] 16.3 Create JobForm component
+    - Implement form with title, company, status, platform, deadline, notes fields
+    - Add date picker for deadline
+    - Implement validation
+    - _Requirements: 3.1, 3.3, 3.6_
+  - [x] 16.4 Create add job modal screen
+    - Use JobForm for creation
+    - Handle submission and navigation
+    - _Requirements: 3.1, 3.2, 3.4_
+  - [ ]* 16.5 Write property test for successful creation
+    - **Property 7: Successful creation adds job to list**
+    - **Validates: Requirements 3.2**
+  - [x] 16.6 Create edit job modal screen
+    - Pre-populate form with existing job data
+    - Handle update submission
+    - _Requirements: 4.3, 4.4_
+  - [ ]* 16.7 Write property test for edit form pre-population
+    - **Property 9: Edit form pre-population**
+    - **Validates: Requirements 4.3**
+  - [x] 16.8 Create delete confirmation dialog
+    - Implement confirmation before deletion
+    - _Requirements: 4.5, 4.6_
+  - [ ]* 16.9 Write property test for deletion
+    - **Property 10: Deletion removes job from list**
+    - **Validates: Requirements 4.6**
+  - [x] 16.10 Create OfferDetailsForm component
+    - Implement form for salary, benefits, accepted date
+    - _Requirements: 5.3_
+  - [ ]* 16.11 Write property test for accepted status form
+    - **Property 12: Accepted status triggers offer form**
+    - **Validates: Requirements 5.3**
+  - [x] 16.12 Create AcceptedJobConfirmDialog
+    - Show when accepting second job
+    - Allow replacing existing accepted job
+    - _Requirements: 5.4_
+  - [ ]* 16.13 Write property test for multiple accepted conflict
+    - **Property 13: Multiple accepted jobs conflict handling**
+    - **Validates: Requirements 5.4**
+
+- [ ] 17. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 18. Implement goal setting
+  - [x] 18.1 Create goal setting modal
+    - Implement number input with validation (1-50)
+    - Save goal via API
+    - _Requirements: 6.3_
+  - [ ]* 18.2 Write property test for goal validation
+    - **Property 15: Goal validation bounds**
+    - **Validates: Requirements 6.3**
+  - [x] 18.3 Implement goal achievement notification
+    - Show celebration when daily goal reached
+    - _Requirements: 6.4_
+
+- [x] 19. Implement notes screen
+  - [x] 19.1 Create NoteCard component
+    - Display title and truncated content
+    - Show updated date
+    - _Requirements: 8.1_
+  - [x] 19.2 Create NoteList component
+    - Display sorted notes
+    - Handle empty state
+    - _Requirements: 8.1_
+  - [x] 19.3 Create NoteForm component
+    - Implement title and content fields
+    - Add validation
+    - _Requirements: 8.2_
+  - [x] 19.4 Create note detail view
+    - Display full content
+    - Add edit and delete options
+    - _Requirements: 8.4_
+  - [x] 19.5 Assemble notes screen
+    - Combine list and form components
+    - Implement add, edit, delete flows
+    - _Requirements: 8.1, 8.3, 8.5, 8.6_
+
+- [x] 20. Implement tasks screen
+  - [x] 20.1 Create TaskCard component
+    - Display title, due date, checkbox
+    - Visual distinction for completed tasks
+    - _Requirements: 9.1, 9.6_
+  - [x] 20.2 Create TaskList component
+    - Display sorted tasks
+    - Handle checkbox toggle
+    - _Requirements: 9.1, 9.4_
+  - [x] 20.3 Create TaskForm component
+    - Implement title, description, due date fields
+    - _Requirements: 9.2_
+  - [x] 20.4 Create task detail view
+    - Display full details
+    - Add edit and delete options
+    - _Requirements: 9.5_
+  - [x] 20.5 Assemble tasks screen
+    - Combine components
+    - Implement CRUD flows
+    - _Requirements: 9.1, 9.3, 9.4, 9.5_
+
+- [x] 21. Implement habits screen
+  - [x] 21.1 Create HabitCard component
+    - Display name, streak info, complete button
+    - Disable button if completed today
+    - _Requirements: 10.1, 10.4, 10.6_
+  - [x] 21.2 Create HabitList component
+    - Display all habits
+    - Handle completion action
+    - _Requirements: 10.1, 10.3_
+  - [x] 21.3 Create HabitForm component
+    - Implement name, description, target days fields
+    - _Requirements: 10.2_
+  - [x] 21.4 Create habit detail view
+    - Display streak history
+    - Show completion calendar
+    - _Requirements: 10.5_
+  - [x] 21.5 Assemble habits screen
+    - Combine components
+    - Implement CRUD and completion flows
+    - _Requirements: 10.1, 10.2, 10.3, 10.5_
+
+- [x] 22. Implement dark mode support
+  - [x] 22.1 Create theme provider with system detection
+    - Detect system color scheme
+    - Apply appropriate theme
+    - _Requirements: 13.1_
+  - [ ]* 22.2 Write property test for theme matching
+    - **Property 24: Theme matches system preference**
+    - **Validates: Requirements 13.1**
+  - [x] 22.3 Configure NativeWind dark mode classes
+    - Define dark mode color palette
+    - Ensure proper contrast ratios
+    - _Requirements: 13.2, 13.3_
+
+- [x] 23. Implement offline support
+  - [x] 23.1 Create network status hook
+    - Detect online/offline state
+    - _Requirements: 12.1, 12.4_
+  - [x] 23.2 Create OfflineIndicator component
+    - Display banner when offline
+    - _Requirements: 12.2_
+  - [ ]* 23.3 Write property test for offline cached data
+    - **Property 23: Offline displays cached data**
+    - **Validates: Requirements 12.1**
+  - [x] 23.4 Configure React Query for offline caching
+    - Set up cache persistence
+    - Handle stale data display
+    - _Requirements: 12.1_
+  - [x] 23.5 Implement offline mutation handling
+    - Show message for actions requiring connectivity
+    - _Requirements: 12.3_
+
+- [-] 24. Implement haptic feedback
+  - [x] 24.1 Create useHaptics hook
+    - Wrap expo-haptics for common feedback patterns
+    - Implement success, error, selection feedback
+    - _Requirements: 14.4_
+  - [x] 24.2 Add haptic feedback to interactions
+    - Add to button presses, toggles, completions
+    - _Requirements: 14.4_
+
+- [ ] 25. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [-] 26. Implement push notifications (optional enhancement)
+  - [x] 26.1 Configure Expo Notifications
+    - Request permissions
+    - Set up notification handlers
+    - _Requirements: 15.1_
+  - [ ] 26.2 Implement deadline reminder notifications
+    - Schedule notifications for approaching deadlines
+    - _Requirements: 15.2_
+  - [ ] 26.3 Implement deep linking from notifications
+    - Navigate to relevant job on notification tap
+    - _Requirements: 15.3_
+
+- [x] 27. Final integration and polish
+  - [x] 27.1 Implement pull-to-refresh on all list screens
+    - Add RefreshControl to ScrollViews
+    - _Requirements: 14.5_
+  - [x] 27.2 Add loading states throughout app
+    - Ensure skeleton states on all data fetches
+    - _Requirements: 14.3_
+  - [x] 27.3 Review and fix any navigation issues
+    - Test all navigation flows
+    - Ensure proper back navigation
+    - _Requirements: 14.1_
+  - [x] 27.4 Performance optimization
+    - Implement list virtualization with FlashList
+    - Optimize re-renders with memo
+    - _Requirements: N/A (Performance)_
+
+- [x] 28. Configure build and deployment
+  - [x] 28.1 Configure EAS Build
+    - Set up eas.json for development, preview, production profiles
+    - Configure iOS and Android build settings
+    - _Requirements: N/A (Deployment)_
+  - [x] 28.2 Configure app icons and splash screen
+    - Add app icons for iOS and Android
+    - Configure splash screen
+    - _Requirements: N/A (Deployment)_
+  - [x] 28.3 Set up environment variables
+    - Configure API URL for different environments
+    - Set up OAuth client IDs
+    - _Requirements: N/A (Deployment)_
+
+- [ ] 29. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
