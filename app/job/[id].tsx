@@ -18,6 +18,7 @@ import { Button } from '../../components/ui/Button';
 import { JobStatus } from '../../types';
 import { formatDate } from '../../utils/date';
 import { fontFamily, fontSize, spacing, statusColors } from '../../theme';
+import { determineStatusWorkflow } from '../../features/jobs/utils/statusWorkflow';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7; // 70% of screen height
@@ -26,7 +27,7 @@ export default function JobDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { job, isLoading, error } = useJob(id);
-  const { updateStatus, deleteJob, isDeleting } = useJobs();
+  const { jobs, updateStatus, deleteJob, isDeleting } = useJobs();
   const { success, error: hapticError } = useHaptics();
   const { colors } = useTheme();
   const { showToast } = useToast();
@@ -37,11 +38,44 @@ export default function JobDetailScreen() {
   };
 
   const handleStatusChange = async (status: JobStatus) => {
-    if (!id || updatingStatus) return;
+    if (!id || updatingStatus || !job) return;
     
     // Don't update if already at this status
-    if (job?.status === status) return;
+    if (job.status === status) return;
     
+    // Check if this status change requires workflow handling
+    const workflow = determineStatusWorkflow(status, job.status, jobs, id);
+    
+    if (workflow.shouldNavigateToOfferDetails) {
+      // Navigate to offer details modal with job info (replace to close job details)
+      router.replace({
+        pathname: '/modals/offer-details',
+        params: {
+          id,
+          jobTitle: job.title,
+          companyName: job.company,
+          targetStatus: status,
+          // Pass existing offer details for pre-population when changing to ACCEPTED
+          existingSalary: job.offerSalary || '',
+          existingBenefits: job.offerBenefits || '',
+        },
+      });
+      return;
+    }
+    
+    if (workflow.shouldNavigateToAcceptedConfirm) {
+      // Navigate to accepted confirmation modal
+      router.push({
+        pathname: '/modals/accepted-confirm',
+        params: {
+          jobId: id,
+          existingJobId: workflow.existingAcceptedJobId,
+        },
+      });
+      return;
+    }
+    
+    // For other status changes, update directly
     setUpdatingStatus(status);
     try {
       await updateStatus({ id, status });

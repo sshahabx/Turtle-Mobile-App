@@ -1,81 +1,94 @@
 /**
- * AcceptedJobBanner Component
+ * Accepted Job Banner Component
  * 
- * Displays accepted job prominently at top with offer details.
+ * Displays a prominent banner/card for the currently accepted job offer.
+ * Shows below Today's Progress on the dashboard.
  * 
  * Requirements:
- * - 2.5: Display ACCEPTED job prominently at the top with offer details
+ * - 4.1: Display accepted job prominently on dashboard
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Job } from '../../types';
-import { formatDate } from '../../utils/date';
+import { useTheme } from '../../hooks/useTheme';
+import { fontFamily, fontSize, spacing, borderRadius, statusColors } from '../../theme';
 
-export interface AcceptedJobBannerProps {
+interface AcceptedJobBannerProps {
   job: Job;
-  onPress?: () => void;
+  onPress: (jobId: string) => void;
 }
 
 export function AcceptedJobBanner({ job, onPress }: AcceptedJobBannerProps) {
+  const { colors } = useTheme();
+  const acceptedColor = statusColors.accepted;
+
   return (
     <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      className="mx-4 mt-4 bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800"
+      style={[styles.container, { backgroundColor: `${acceptedColor}15`, borderColor: acceptedColor }]}
+      onPress={() => onPress(job.id)}
+      activeOpacity={0.7}
     >
-      {/* Header */}
-      <View className="flex-row items-center mb-2">
-        <View className="w-6 h-6 rounded-full bg-green-200 dark:bg-green-800 items-center justify-center mr-2">
-          <View className="w-3 h-1.5 border-l-2 border-b-2 border-green-700 dark:border-green-400" style={{ transform: [{ rotate: '-45deg' }], marginTop: -2 }} />
+      <View style={[styles.iconContainer, { backgroundColor: acceptedColor }]}>
+        <Ionicons name="checkmark-circle" size={24} color="#fff" />
+      </View>
+      <View style={styles.content}>
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, { color: acceptedColor }]}>Accepted Offer</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
         </View>
-        <Text className="text-sm font-semibold text-green-700 dark:text-green-400">
-          Accepted Offer
+        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+          {job.title}
+        </Text>
+        <Text style={[styles.company, { color: colors.textSecondary }]} numberOfLines={1}>
+          {job.company}
         </Text>
       </View>
-
-      {/* Job Title & Company */}
-      <Text className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-        {job.offerTitle || job.title}
-      </Text>
-      <Text className="text-base text-gray-600 dark:text-gray-300 mb-3">
-        {job.offerCompany || job.company}
-      </Text>
-
-      {/* Offer Details */}
-      {(job.offerSalary || job.offerBenefits) && (
-        <View className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3">
-          {job.offerSalary && (
-            <View className="flex-row items-center mb-1">
-              <Text className="text-sm text-gray-500 dark:text-gray-400 w-16">
-                Salary:
-              </Text>
-              <Text className="text-sm font-medium text-gray-900 dark:text-white flex-1">
-                {job.offerSalary}
-              </Text>
-            </View>
-          )}
-          {job.offerBenefits && (
-            <View className="flex-row items-start">
-              <Text className="text-sm text-gray-500 dark:text-gray-400 w-16">
-                Benefits:
-              </Text>
-              <Text className="text-sm text-gray-700 dark:text-gray-300 flex-1">
-                {job.offerBenefits}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* Accepted Date */}
-      {job.offerAcceptedDate && (
-        <Text className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          Accepted on {formatDate(job.offerAcceptedDate)}
-        </Text>
-      )}
     </TouchableOpacity>
   );
 }
 
-export default AcceptedJobBanner;
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    padding: spacing.md,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  content: {
+    flex: 1,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  label: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  title: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.base,
+    marginTop: spacing.xs,
+  },
+  company: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+    marginTop: 2,
+  },
+});

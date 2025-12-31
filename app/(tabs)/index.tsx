@@ -29,6 +29,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing, borderRadius, statusColors } from '../../theme';
 import { CollapsibleStatusSection } from '../../components/dashboard/CollapsibleStatusSection';
 import { StatusStats } from '../../components/dashboard/StatusStats';
+import { AcceptedJobBanner } from '../../components/dashboard/AcceptedJobBanner';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -64,6 +65,9 @@ export default function DashboardScreen() {
   
   // Get counts for status stats
   const statusCounts = getJobCountsByStatus(jobs);
+  
+  // Find accepted job for banner
+  const acceptedJob = jobs.find(job => job.status === JobStatus.ACCEPTED);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -265,6 +269,14 @@ export default function DashboardScreen() {
                 {todayJobs.length} / {dailyGoal} applications today
               </Text>
             </View>
+
+            {/* Accepted Job Banner */}
+            {acceptedJob && (
+              <AcceptedJobBanner 
+                job={acceptedJob} 
+                onPress={handleJobPress} 
+              />
+            )}
 
             {/* Empty State */}
             {jobs.length === 0 && (

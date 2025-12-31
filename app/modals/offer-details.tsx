@@ -20,11 +20,13 @@ import { fontFamily, fontSize, spacing } from '../../theme';
 
 export default function OfferDetailsModal() {
   const router = useRouter();
-  const { id, jobTitle, companyName, targetStatus } = useLocalSearchParams<{ 
+  const { id, jobTitle, companyName, targetStatus, existingSalary, existingBenefits } = useLocalSearchParams<{ 
     id: string;
     jobTitle?: string;
     companyName?: string;
     targetStatus?: string;
+    existingSalary?: string;
+    existingBenefits?: string;
   }>();
   const { updateJob, isUpdating } = useJobs();
   const { success, error: hapticError } = useHaptics();
@@ -70,6 +72,9 @@ export default function OfferDetailsModal() {
         isLoading={isUpdating}
         jobTitle={jobTitle}
         companyName={companyName}
+        hideJobInfo={true}
+        existingSalary={existingSalary}
+        existingBenefits={existingBenefits}
       />
     </SafeAreaView>
   );

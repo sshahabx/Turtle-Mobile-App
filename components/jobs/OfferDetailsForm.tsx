@@ -41,6 +41,10 @@ export interface OfferDetailsFormProps {
   companyName?: string;
   /** Existing salary string for pre-population (Requirements: 5.5) */
   existingSalary?: string;
+  /** Existing benefits string for pre-population */
+  existingBenefits?: string;
+  /** Hide job title and company fields (used when changing status from job details) */
+  hideJobInfo?: boolean;
 }
 
 export function OfferDetailsForm({
@@ -50,6 +54,8 @@ export function OfferDetailsForm({
   jobTitle,
   companyName,
   existingSalary,
+  existingBenefits,
+  hideJobInfo = false,
 }: OfferDetailsFormProps) {
   // Editable job title and company fields (Requirements: 5.1)
   const [offerTitle, setOfferTitle] = useState(jobTitle || '');
@@ -59,7 +65,7 @@ export function OfferDetailsForm({
   const [currency, setCurrency] = useState<Currency | null>(null);
   const [salaryRange, setSalaryRange] = useState<string | null>(null);
   
-  const [benefits, setBenefits] = useState('');
+  const [benefits, setBenefits] = useState(existingBenefits || '');
   const [acceptedDate, setAcceptedDate] = useState<Date>(new Date());
   const { colors, isDark } = useTheme();
 
@@ -88,6 +94,13 @@ export function OfferDetailsForm({
       setOfferCompany(companyName);
     }
   }, [companyName]);
+
+  // Update benefits when prop changes
+  useEffect(() => {
+    if (existingBenefits) {
+      setBenefits(existingBenefits);
+    }
+  }, [existingBenefits]);
 
   const handleSubmit = () => {
     // Format salary from currency and range selection (Requirements: 2.6)
@@ -127,22 +140,26 @@ export function OfferDetailsForm({
         </View>
 
         {/* Job Title - Editable field pre-populated from props (Requirements: 5.1) */}
-        <Input
-          label="Job Title"
-          placeholder="e.g., Software Engineer"
-          value={offerTitle}
-          onChangeText={setOfferTitle}
-          autoCapitalize="words"
-        />
+        {!hideJobInfo && (
+          <Input
+            label="Job Title"
+            placeholder="e.g., Software Engineer"
+            value={offerTitle}
+            onChangeText={setOfferTitle}
+            autoCapitalize="words"
+          />
+        )}
 
         {/* Company Name - Editable field pre-populated from props (Requirements: 5.1) */}
-        <Input
-          label="Company"
-          placeholder="e.g., Acme Corp"
-          value={offerCompany}
-          onChangeText={setOfferCompany}
-          autoCapitalize="words"
-        />
+        {!hideJobInfo && (
+          <Input
+            label="Company"
+            placeholder="e.g., Acme Corp"
+            value={offerCompany}
+            onChangeText={setOfferCompany}
+            autoCapitalize="words"
+          />
+        )}
 
         {/* Salary - Currency and Range Selectors (Requirements: 5.2) */}
         <SalarySelector
