@@ -3,16 +3,29 @@
  * 
  * Displays user notes with create/edit functionality.
  * Uses centralized theme system for consistent styling.
+ * Features a personal, journal-like header for emotional connection.
  */
 
 import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, FlatList, RefreshControl, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useNotes } from '../../features/notes/hooks/useNotes';
 import { Note } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing, borderRadius } from '../../theme';
+import { PersonalHeader } from '../../components/notes/PersonalHeader';
+
+// Pastel colors for note cards to make them feel more personal
+const NOTE_COLORS = [
+  { bg: '#FFF9E6', border: '#FFE082' }, // Warm yellow
+  { bg: '#E8F5E9', border: '#A5D6A7' }, // Soft green
+  { bg: '#E3F2FD', border: '#90CAF9' }, // Light blue
+  { bg: '#FCE4EC', border: '#F48FB1' }, // Pink
+  { bg: '#F3E5F5', border: '#CE93D8' }, // Lavender
+  { bg: '#FFF3E0', border: '#FFCC80' }, // Peach
+];
 
 export default function NotesScreen() {
   const router = useRouter();
@@ -34,26 +47,58 @@ export default function NotesScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  const renderNote = ({ item }: { item: Note }) => (
-    <TouchableOpacity 
-      style={[styles.noteCard, { backgroundColor: colors.surface, borderColor: colors.border }]} 
-      onPress={() => handleNotePress(item)}
-    >
-      <Text style={[styles.noteTitle, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
-      <Text style={[styles.noteContent, { color: colors.textSecondary }]} numberOfLines={2}>{item.content}</Text>
-      <Text style={[styles.noteDate, { color: colors.textTertiary }]}>
-        {new Date(item.updatedAt).toLocaleDateString()}
-      </Text>
-    </TouchableOpacity>
-  );
+  // Get a consistent color for each note based on its index
+  const getNoteColor = (index: number) => {
+    return NOTE_COLORS[index % NOTE_COLORS.length];
+  };
+
+  const renderNote = ({ item, index }: { item: Note; index: number }) => {
+    const noteColor = getNoteColor(index);
+    
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.noteCard, 
+          { 
+            backgroundColor: noteColor.bg, 
+            borderColor: noteColor.border,
+          }
+        ]} 
+        onPress={() => handleNotePress(item)}
+      >
+        {/* Decorative corner fold */}
+        <View style={[styles.cornerFold, { borderTopColor: noteColor.border }]} />
+        
+        <Text style={[styles.noteTitle, { color: colors.text }]} numberOfLines={1}>
+          {item.title}
+        </Text>
+        <Text style={[styles.noteContent, { color: colors.textSecondary }]} numberOfLines={3}>
+          {item.content}
+        </Text>
+        <View style={styles.noteFooter}>
+          <Text style={[styles.noteDate, { color: colors.textTertiary }]}>
+            {new Date(item.updatedAt).toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric',
+              year: new Date(item.updatedAt).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+            })}
+          </Text>
+          <Ionicons name="document-text-outline" size={14} color={colors.textTertiary} />
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Notes</Text>
+        <View>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>My Journal</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Your personal space</Text>
+        </View>
         <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={handleAddNote}>
-          <Text style={[styles.addButtonText, { color: colors.textInverse }]}>+ Add</Text>
+          <Text style={[styles.addButtonText, { color: colors.textInverse }]}>+ New</Text>
         </TouchableOpacity>
       </View>
 
@@ -64,17 +109,16 @@ export default function NotesScreen() {
         </View>
       ) : notes.length === 0 ? (
         <View style={styles.emptyState}>
+          <PersonalHeader notesCount={0} />
           <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
-            <View style={styles.emptyIconLines}>
-              <View style={[styles.emptyIconLine, { backgroundColor: colors.textTertiary, width: 20 }]} />
-              <View style={[styles.emptyIconLine, { backgroundColor: colors.textTertiary, width: 14 }]} />
-              <View style={[styles.emptyIconLine, { backgroundColor: colors.textTertiary, width: 20 }]} />
-            </View>
+            <Ionicons name="journal-outline" size={40} color={colors.primary} />
           </View>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>No notes yet</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Start capturing your thoughts</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Your journal awaits</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+            Start capturing your thoughts, ideas, and memories
+          </Text>
           <TouchableOpacity style={[styles.emptyButton, { backgroundColor: colors.primary }]} onPress={handleAddNote}>
-            <Text style={[styles.emptyButtonText, { color: colors.textInverse }]}>Add Your First Note</Text>
+            <Text style={[styles.emptyButtonText, { color: colors.textInverse }]}>Write Your First Note</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -83,6 +127,9 @@ export default function NotesScreen() {
           renderItem={renderNote}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+          ListHeaderComponent={<PersonalHeader notesCount={notes.length} />}
           refreshControl={
             <RefreshControl 
               refreshing={refreshing} 
@@ -112,6 +159,11 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bold,
     fontSize: fontSize['2xl'],
   },
+  headerSubtitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+    marginTop: 2,
+  },
   addButton: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
@@ -129,11 +181,28 @@ const styles = StyleSheet.create({
   listContent: {
     padding: spacing.lg,
   },
+  columnWrapper: {
+    justifyContent: 'space-between',
+  },
   noteCard: {
-    padding: spacing.lg,
-    borderRadius: borderRadius.xl,
+    width: '48%',
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
+    minHeight: 140,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  cornerFold: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 0,
+    height: 0,
+    borderTopWidth: 20,
+    borderLeftWidth: 20,
+    borderLeftColor: 'transparent',
   },
   noteTitle: {
     fontFamily: fontFamily.semibold,
@@ -145,6 +214,12 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     marginBottom: spacing.sm,
     lineHeight: fontSize.sm * 1.5,
+    flex: 1,
+  },
+  noteFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   noteDate: {
     fontFamily: fontFamily.regular,
@@ -154,23 +229,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: spacing.lg,
   },
   emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
-  },
-  emptyIconLines: {
-    alignItems: 'flex-start',
-  },
-  emptyIconLine: {
-    height: 3,
-    borderRadius: 1,
-    marginVertical: 2,
   },
   emptyTitle: {
     fontFamily: fontFamily.semibold,
@@ -181,6 +248,8 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.sm,
     marginBottom: spacing['2xl'],
+    textAlign: 'center',
+    paddingHorizontal: spacing.xl,
   },
   emptyButton: {
     paddingHorizontal: spacing['2xl'],

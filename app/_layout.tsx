@@ -44,11 +44,7 @@ export default function RootLayout() {
 
   // Show loading screen while fonts are loading
   if (!fontsLoaded && !fontError) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <LoadingScreen />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   // Log font error but continue with fallback fonts
@@ -57,11 +53,10 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={styles.flex}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <Stack screenOptions={{ headerShown: false }}>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
               <Stack.Screen name="index" />
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="(tabs)" />
@@ -118,7 +113,6 @@ export default function RootLayout() {
               <Stack.Screen name="task/[id]" />
               <Stack.Screen name="habit/[id]" />
             </Stack>
-          </View>
         </ToastProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
@@ -126,12 +120,6 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

@@ -23,11 +23,12 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useJobs } from '../../features/jobs/hooks/useJobs';
 import { useGoal } from '../../features/user/hooks/useGoal';
-import { groupJobsByStatus, STATUS_DISPLAY_ORDER, filterJobsBySearch } from '../../features/jobs/utils/jobUtils';
+import { groupJobsByStatus, STATUS_DISPLAY_ORDER, filterJobsBySearch, getJobCountsByStatus } from '../../features/jobs/utils/jobUtils';
 import { Job, JobStatus } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing, borderRadius, statusColors } from '../../theme';
 import { CollapsibleStatusSection } from '../../components/dashboard/CollapsibleStatusSection';
+import { StatusStats } from '../../components/dashboard/StatusStats';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -60,6 +61,9 @@ export default function DashboardScreen() {
   
   // Group jobs by status (only used when not searching)
   const jobsByStatus = groupJobsByStatus(filteredJobs);
+  
+  // Get counts for status stats
+  const statusCounts = getJobCountsByStatus(jobs);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -114,6 +118,16 @@ export default function DashboardScreen() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsSearchExpanded(false);
     setSearchQuery('');
+  }, []);
+
+  // Handle status card press - scroll to that section
+  const handleStatusPress = useCallback((status: JobStatus) => {
+    // Expand the section if collapsed
+    setExpandedSections(prev => ({
+      ...prev,
+      [status]: true,
+    }));
+    // Could add scroll-to functionality here
   }, []);
 
   // Calculate stats
@@ -210,30 +224,31 @@ export default function DashboardScreen() {
 
         {!isLoading && (
           <>
-            {/* Stats Cards */}
-            <View style={styles.statsContainer}>
-              <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[styles.statNumber, { color: colors.primary }]}>{jobs.length}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Total Jobs</Text>
-              </View>
-              <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[styles.statNumber, { color: colors.success }]}>{todayJobs.length}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Today</Text>
-              </View>
-              <TouchableOpacity 
-                style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                onPress={handleGoalPress}
-              >
-                <Text style={[styles.statNumber, { color: colors.warning }]}>{dailyGoal}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Daily Goal</Text>
-              </TouchableOpacity>
-            </View>
+            {/* Status Stats - Shows counts for statuses with applications */}
+            {jobs.length > 0 && (
+              <StatusStats 
+                statusCounts={statusCounts} 
+                onStatusPress={handleStatusPress}
+              />
+            )}
 
-            {/* Progress */}
+            {/* Daily Progress */}
             <View style={[styles.progressContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.progressHeader}>
-                <Text style={[styles.progressTitle, { color: colors.text }]}>Today's Progress</Text>
-                {isGoalReached && <View style={[styles.goalBadge, { backgroundColor: colors.success }]}><Text style={styles.goalBadgeText}>Done</Text></View>}
+                <View style={styles.progressTitleRow}>
+                  <Text style={[styles.progressTitle, { color: colors.text }]}>Today's Progress</Text>
+                  <TouchableOpacity onPress={handleGoalPress}>
+                    <Text style={[styles.goalLink, { color: colors.primary }]}>
+                      Goal: {dailyGoal}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {isGoalReached && (
+                  <View style={[styles.goalBadge, { backgroundColor: colors.success }]}>
+                    <Ionicons name="checkmark-circle" size={14} color="#fff" style={{ marginRight: 4 }} />
+                    <Text style={styles.goalBadgeText}>Goal Reached!</Text>
+                  </View>
+                )}
               </View>
               <View style={[styles.progressBar, { backgroundColor: colors.backgroundTertiary }]}>
                 <View 
@@ -247,8 +262,7 @@ export default function DashboardScreen() {
                 />
               </View>
               <Text style={[styles.progressText, { color: colors.textSecondary }]}>
-                {todayJobs.length} / {dailyGoal} applications
-                {isGoalReached && ' - Goal reached!'}
+                {todayJobs.length} / {dailyGoal} applications today
               </Text>
             </View>
 
@@ -256,7 +270,7 @@ export default function DashboardScreen() {
             {jobs.length === 0 && (
               <View style={styles.emptyState}>
                 <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                  <View style={[styles.emptyIconInner, { borderColor: colors.textTertiary }]} />
+                  <Ionicons name="briefcase-outline" size={32} color={colors.textTertiary} />
                 </View>
                 <Text style={[styles.emptyTitle, { color: colors.text }]}>No jobs yet</Text>
                 <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
@@ -418,48 +432,38 @@ const styles = StyleSheet.create({
     padding: 40,
     alignItems: 'center',
   },
-  statsContainer: {
-    flexDirection: 'row',
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    padding: spacing.lg,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  statNumber: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize['2xl'],
-  },
-  statLabel: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.xs,
-    marginTop: spacing.xs,
-  },
   progressContainer: {
     marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
     padding: spacing.lg,
     borderRadius: borderRadius.xl,
     marginBottom: spacing.lg,
     borderWidth: 1,
   },
   progressHeader: {
+    marginBottom: spacing.md,
+  },
+  progressTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    justifyContent: 'space-between',
   },
   progressTitle: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.sm,
   },
+  goalLink: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.sm,
+  },
   goalBadge: {
-    marginLeft: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   goalBadgeText: {
     fontFamily: fontFamily.medium,
@@ -491,12 +495,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
-  },
-  emptyIconInner: {
-    width: 28,
-    height: 32,
-    borderWidth: 2,
-    borderRadius: 4,
   },
   emptyTitle: {
     fontFamily: fontFamily.semibold,

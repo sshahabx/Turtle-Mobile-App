@@ -3,17 +3,20 @@
  * 
  * Displays user habits with streak tracking and completion.
  * Uses centralized theme system for consistent styling.
+ * Features an engaging streak tracker component for user retention.
  */
 
-import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, FlatList, RefreshControl, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, Text, TouchableOpacity, FlatList, RefreshControl, StyleSheet, ActivityIndicator, Alert, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useHabits } from '../../features/habits/hooks/useHabits';
 import { Habit } from '../../types';
 import { isCompletedToday } from '../../features/habits/utils/habitUtils';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing, borderRadius } from '../../theme';
+import { StreakTracker } from '../../components/habits/StreakTracker';
 
 export default function HabitsScreen() {
   const router = useRouter();
@@ -48,9 +51,50 @@ export default function HabitsScreen() {
     setRefreshing(false);
   }, [refetch]);
 
+  // Calculate overall streak stats for the header
+  const overallStats = useMemo(() => {
+    if (habits.length === 0) {
+      return { totalStreak: 0, bestStreak: 0, completedToday: false, lastCompleted: undefined };
+    }
+    
+    const totalStreak = habits.reduce((sum, h) => sum + h.currentStreak, 0);
+    const bestStreak = Math.max(...habits.map(h => h.bestStreak), 0);
+    const anyCompletedToday = habits.some(h => isCompletedToday(h));
+    const lastCompletedDates = habits
+      .filter(h => h.lastCompleted)
+      .map(h => new Date(h.lastCompleted!));
+    const lastCompleted = lastCompletedDates.length > 0 
+      ? new Date(Math.max(...lastCompletedDates.map(d => d.getTime())))
+      : undefined;
+    
+    // Average streak across all habits
+    const avgStreak = Math.round(totalStreak / habits.length);
+    
+    return { 
+      totalStreak: avgStreak, 
+      bestStreak, 
+      completedToday: anyCompletedToday,
+      lastCompleted,
+    };
+  }, [habits]);
+
   const renderHabit = ({ item }: { item: Habit }) => {
     const completed = isCompletedToday(item);
     const isCompleting = completingId === item.id;
+    const streakLevel = item.currentStreak >= 30 ? 'legendary' : 
+                        item.currentStreak >= 14 ? 'hot' : 
+                        item.currentStreak >= 7 ? 'warm' : 
+                        item.currentStreak >= 3 ? 'building' : 'starting';
+    
+    const streakColors: Record<string, string> = {
+      legendary: '#FF6B35',
+      hot: '#FF8C42',
+      warm: '#FFB347',
+      building: colors.warning,
+      starting: colors.primary,
+    };
+    
+    const streakColor = streakColors[streakLevel];
     
     return (
       <TouchableOpacity 
@@ -58,21 +102,52 @@ export default function HabitsScreen() {
         onPress={() => handleHabitPress(item)}
       >
         <View style={styles.habitInfo}>
-          <Text style={[styles.habitName, { color: colors.text }]}>{item.name}</Text>
+          <View style={styles.habitHeader}>
+            <Text style={[styles.habitName, { color: colors.text }]}>{item.name}</Text>
+            {item.currentStreak >= 3 && (
+              <View style={[styles.streakBadge, { backgroundColor: `${streakColor}20` }]}>
+                <Ionicons name="flame" size={12} color={streakColor} style={styles.fireIconBadge} />
+                <Text style={[styles.streakBadgeText, { color: streakColor }]}>
+                  {item.currentStreak}
+                </Text>
+              </View>
+            )}
+          </View>
           {item.description && (
             <Text style={[styles.habitDescription, { color: colors.textSecondary }]} numberOfLines={1}>
               {item.description}
             </Text>
           )}
           <View style={styles.streakContainer}>
-            <View style={[styles.streakIcon, { backgroundColor: colors.warning }]} />
-            <Text style={[styles.streakText, { color: colors.warning }]}>
-              {item.currentStreak} day streak
+            <View style={[styles.streakIcon, { backgroundColor: streakColor }]} />
+            <Text style={[styles.streakText, { color: streakColor }]}>
+              {item.currentStreak} day{item.currentStreak !== 1 ? 's' : ''} streak
             </Text>
-            <Text style={[styles.bestStreak, { color: colors.textTertiary }]}>
-              Best: {item.bestStreak}
-            </Text>
+            {item.bestStreak > item.currentStreak && (
+              <Text style={[styles.bestStreak, { color: colors.textTertiary }]}>
+                Best: {item.bestStreak}
+              </Text>
+            )}
           </View>
+          {/* Mini progress bar */}
+          {item.targetDays > 0 && (
+            <View style={styles.miniProgressContainer}>
+              <View style={[styles.miniProgressBar, { backgroundColor: colors.backgroundTertiary }]}>
+                <View 
+                  style={[
+                    styles.miniProgressFill, 
+                    { 
+                      backgroundColor: streakColor,
+                      width: `${Math.min(100, (item.currentStreak / item.targetDays) * 100)}%` 
+                    }
+                  ]} 
+                />
+              </View>
+              <Text style={[styles.miniProgressText, { color: colors.textTertiary }]}>
+                {item.currentStreak}/{item.targetDays}
+              </Text>
+            </View>
+          )}
         </View>
         <TouchableOpacity
           style={[
@@ -85,7 +160,7 @@ export default function HabitsScreen() {
           {isCompleting ? (
             <ActivityIndicator size="small" color={colors.textInverse} />
           ) : completed ? (
-            <View style={[styles.checkmark, { borderColor: colors.textInverse }]} />
+            <Ionicons name="checkmark" size={18} color={colors.textInverse} />
           ) : (
             <Text style={[styles.completeButtonText, { color: colors.textInverse }]}>Done</Text>
           )}
@@ -112,10 +187,12 @@ export default function HabitsScreen() {
       ) : habits.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
-            <View style={[styles.emptyIconCircle, { borderColor: colors.textTertiary }]} />
+            <Ionicons name="flame-outline" size={40} color={colors.primary} />
           </View>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>No habits yet</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Build better habits by tracking them daily</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Start Building Habits</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+            Track your daily habits and watch your streaks grow!
+          </Text>
           <TouchableOpacity style={[styles.emptyButton, { backgroundColor: colors.primary }]} onPress={handleAddHabit}>
             <Text style={[styles.emptyButtonText, { color: colors.textInverse }]}>Add Your First Habit</Text>
           </TouchableOpacity>
@@ -126,6 +203,14 @@ export default function HabitsScreen() {
           renderItem={renderHabit}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            <StreakTracker
+              currentStreak={overallStats.totalStreak}
+              bestStreak={overallStats.bestStreak}
+              lastCompleted={overallStats.lastCompleted}
+              completedToday={overallStats.completedToday}
+            />
+          }
           refreshControl={
             <RefreshControl 
               refreshing={refreshing} 
@@ -183,9 +268,30 @@ const styles = StyleSheet.create({
   habitInfo: {
     flex: 1,
   },
+  habitHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   habitName: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.base,
+    flex: 1,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.full,
+    marginLeft: spacing.sm,
+  },
+  fireIconBadge: {
+    marginRight: 2,
+  },
+  streakBadgeText: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xs,
   },
   habitDescription: {
     fontFamily: fontFamily.regular,
@@ -223,12 +329,26 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.sm,
   },
-  checkmark: {
-    width: 12,
-    height: 6,
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
-    transform: [{ rotate: '-45deg' }],
+  miniProgressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  miniProgressBar: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginRight: spacing.sm,
+  },
+  miniProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  miniProgressText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.xs,
+    minWidth: 35,
   },
   emptyState: {
     flex: 1,
@@ -237,18 +357,12 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
-  },
-  emptyIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 3,
   },
   emptyTitle: {
     fontFamily: fontFamily.semibold,

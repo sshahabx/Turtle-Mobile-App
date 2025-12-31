@@ -3,22 +3,30 @@
  * 
  * Displays user tasks with completion tracking.
  * Uses centralized theme system for consistent styling.
+ * Features a mood selector for emotional engagement.
  */
 
 import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, FlatList, RefreshControl, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTasks } from '../../features/tasks/hooks/useTasks';
 import { Task, TaskStatus } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing, borderRadius } from '../../theme';
+import { MoodSelector, MoodType } from '../../components/tasks/MoodSelector';
 
 export default function TasksScreen() {
   const router = useRouter();
   const { tasks, isLoading, refetch, toggleTask } = useTasks();
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
+
+  const handleMoodSelect = (mood: MoodType) => {
+    setSelectedMood(mood);
+  };
 
   const handleTaskPress = (task: Task) => {
     router.push({ pathname: '/task/[id]', params: { id: task.id } });
@@ -100,13 +108,12 @@ export default function TasksScreen() {
         </View>
       ) : tasks.length === 0 ? (
         <View style={styles.emptyState}>
+          <MoodSelector onMoodSelect={handleMoodSelect} />
           <View style={[styles.emptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
-            <View style={[styles.emptyIconBox, { borderColor: colors.textTertiary }]}>
-              <View style={[styles.emptyIconCheck, { borderColor: colors.textTertiary }]} />
-            </View>
+            <Ionicons name="checkbox-outline" size={40} color={colors.primary} />
           </View>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>No tasks yet</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Stay organized by adding your first task</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Ready to be productive?</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Add your first task and start checking things off!</Text>
           <TouchableOpacity style={[styles.emptyButton, { backgroundColor: colors.primary }]} onPress={handleAddTask}>
             <Text style={[styles.emptyButtonText, { color: colors.textInverse }]}>Add Your First Task</Text>
           </TouchableOpacity>
@@ -117,6 +124,7 @@ export default function TasksScreen() {
           renderItem={renderTask}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={<MoodSelector onMoodSelect={handleMoodSelect} />}
           refreshControl={
             <RefreshControl 
               refreshing={refreshing} 
@@ -212,31 +220,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: spacing.lg,
   },
   emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
-  },
-  emptyIconBox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyIconCheck: {
-    width: 10,
-    height: 6,
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
-    transform: [{ rotate: '-45deg' }],
-    marginTop: -2,
   },
   emptyTitle: {
     fontFamily: fontFamily.semibold,
