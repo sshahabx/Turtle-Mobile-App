@@ -8,3 +8,4 @@ export { Skeleton, SkeletonCard, SkeletonList, SkeletonText, type SkeletonProps,
 export { ToastProvider, useToast, type ToastMessage, type ToastVariant } from './Toast';
 export { DatePicker, type DatePickerProps } from './DatePicker';
 export { OfflineIndicator, type OfflineIndicatorProps } from './OfflineIndicator';
+export { SearchBar, type SearchBarProps } from './SearchBar';

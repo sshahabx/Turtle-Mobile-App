@@ -19,27 +19,55 @@ export function formatDate(
 
 /**
  * Formats a date relative to the current time (e.g., "2 days ago", "in 3 hours")
+ * Uses a simple implementation that works across all React Native environments
  * @param date - The date to format
  * @returns Relative time string
  */
 export function formatRelativeDate(date: Date): string {
   const now = new Date();
-  const diffMs = date.getTime() - now.getTime();
+  const diffMs = now.getTime() - date.getTime();
   const diffSeconds = Math.round(diffMs / 1000);
   const diffMinutes = Math.round(diffSeconds / 60);
   const diffHours = Math.round(diffMinutes / 60);
   const diffDays = Math.round(diffHours / 24);
 
-  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+  // Handle future dates
+  if (diffMs < 0) {
+    const absDiffDays = Math.abs(diffDays);
+    const absDiffHours = Math.abs(diffHours);
+    const absDiffMinutes = Math.abs(diffMinutes);
+    
+    if (absDiffDays >= 1) {
+      return absDiffDays === 1 ? 'in 1 day' : `in ${absDiffDays} days`;
+    } else if (absDiffHours >= 1) {
+      return absDiffHours === 1 ? 'in 1 hour' : `in ${absDiffHours} hours`;
+    } else if (absDiffMinutes >= 1) {
+      return absDiffMinutes === 1 ? 'in 1 minute' : `in ${absDiffMinutes} minutes`;
+    } else {
+      return 'just now';
+    }
+  }
 
-  if (Math.abs(diffDays) >= 1) {
-    return rtf.format(diffDays, 'day');
-  } else if (Math.abs(diffHours) >= 1) {
-    return rtf.format(diffHours, 'hour');
-  } else if (Math.abs(diffMinutes) >= 1) {
-    return rtf.format(diffMinutes, 'minute');
+  // Handle past dates
+  if (diffDays >= 1) {
+    if (diffDays === 1) return 'yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+    }
+    if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      return months === 1 ? '1 month ago' : `${months} months ago`;
+    }
+    const years = Math.floor(diffDays / 365);
+    return years === 1 ? '1 year ago' : `${years} years ago`;
+  } else if (diffHours >= 1) {
+    return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+  } else if (diffMinutes >= 1) {
+    return diffMinutes === 1 ? '1 minute ago' : `${diffMinutes} minutes ago`;
   } else {
-    return rtf.format(diffSeconds, 'second');
+    return 'just now';
   }
 }
 

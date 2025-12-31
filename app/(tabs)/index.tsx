@@ -3,18 +3,36 @@
  * 
  * Main dashboard with job statistics, progress tracking, and job list.
  * Uses centralized theme system for consistent styling.
+ * 
+ * Features:
+ * - Search bar for filtering jobs by title, company, or notes
+ * - Collapsible status sections for organized job viewing
+ * - Stats cards showing total jobs, today's count, and daily goal
+ * 
+ * Requirements:
+ * - 1.1: Display job applications grouped by status in collapsible sections
+ * - 1.6: Display status sections in priority order
+ * - 2.1: Display a Global_Search bar prominently at the top
+ * - 2.5: Show matching jobs in a flat list with status badges when searching
  */
 
-import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useJobs } from '../../features/jobs/hooks/useJobs';
 import { useGoal } from '../../features/user/hooks/useGoal';
-import { groupJobsByStatus, STATUS_DISPLAY_ORDER } from '../../features/jobs/utils/jobUtils';
-import { Job } from '../../types';
+import { groupJobsByStatus, STATUS_DISPLAY_ORDER, filterJobsBySearch } from '../../features/jobs/utils/jobUtils';
+import { Job, JobStatus } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing, borderRadius, statusColors } from '../../theme';
+import { CollapsibleStatusSection } from '../../components/dashboard/CollapsibleStatusSection';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function DashboardScreen() {
   const { jobs, isLoading, refetch } = useJobs();
@@ -22,8 +40,26 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const searchInputRef = useRef<TextInput>(null);
+  
+  // Track expanded/collapsed state for each status section
+  const [expandedSections, setExpandedSections] = useState<Record<JobStatus, boolean>>({
+    [JobStatus.ACCEPTED]: true,
+    [JobStatus.OFFERED]: true,
+    [JobStatus.INTERVIEWING]: true,
+    [JobStatus.APPLIED]: true,
+    [JobStatus.PENDING]: false,
+    [JobStatus.REJECTED]: false,
+  });
 
-  const jobsByStatus = groupJobsByStatus(jobs);
+  // Filter jobs based on search query
+  const filteredJobs = filterJobsBySearch(jobs, searchQuery);
+  const isSearching = searchQuery.trim().length > 0;
+  
+  // Group jobs by status (only used when not searching)
+  const jobsByStatus = groupJobsByStatus(filteredJobs);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -42,6 +78,43 @@ export default function DashboardScreen() {
   const handleGoalPress = () => {
     router.push('/modals/goal-setting');
   };
+
+  // Toggle expanded/collapsed state for a status section
+  const handleToggleSection = useCallback((status: JobStatus) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [status]: !prev[status],
+    }));
+  }, []);
+
+  // Handle search query change
+  const handleSearchChange = useCallback((text: string) => {
+    setSearchQuery(text);
+  }, []);
+
+  // Toggle search expansion
+  const handleSearchToggle = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsSearchExpanded(prev => {
+      if (!prev) {
+        // Expanding - focus the input after animation
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 100);
+      } else {
+        // Collapsing - clear the search query
+        setSearchQuery('');
+      }
+      return !prev;
+    });
+  }, []);
+
+  // Close search when pressing back/cancel
+  const handleSearchClose = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsSearchExpanded(false);
+    setSearchQuery('');
+  }, []);
 
   // Calculate stats
   const todayJobs = jobs.filter(job => {
@@ -65,12 +138,57 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Header */}
+      {/* Header with expandable search */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <View>
-          <Text style={[styles.welcomeText, { color: colors.textSecondary }]}>Welcome back,</Text>
-          <Text style={[styles.titleText, { color: colors.text }]}>Job Seeker</Text>
-        </View>
+        {isSearchExpanded ? (
+          // Expanded search bar
+          <View style={styles.expandedSearchContainer}>
+            <TouchableOpacity 
+              onPress={handleSearchClose}
+              style={styles.searchBackButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <View style={[styles.searchInputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+              <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.searchInputIcon} />
+              <TextInput
+                ref={searchInputRef}
+                style={[styles.searchInput, { color: colors.text }]}
+                value={searchQuery}
+                onChangeText={handleSearchChange}
+                placeholder="Search jobs..."
+                placeholderTextColor={colors.textTertiary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity 
+                  onPress={() => setSearchQuery('')}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        ) : (
+          // Normal header with search icon
+          <>
+            <View>
+              <Text style={[styles.welcomeText, { color: colors.textSecondary }]}>Welcome back,</Text>
+              <Text style={[styles.titleText, { color: colors.text }]}>Job Seeker</Text>
+            </View>
+            <TouchableOpacity 
+              onPress={handleSearchToggle}
+              style={[styles.searchIconButton, { backgroundColor: colors.backgroundSecondary }]}
+              hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+            >
+              <Ionicons name="search" size={22} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       <ScrollView
@@ -153,42 +271,74 @@ export default function DashboardScreen() {
               </View>
             )}
 
-            {/* Jobs by Status */}
-            {jobs.length > 0 && (
+            {/* Jobs by Status - Collapsible Sections */}
+            {jobs.length > 0 && !isSearching && (
               <View style={styles.jobsSection}>
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Applications by Status</Text>
                 {STATUS_DISPLAY_ORDER.map((status) => {
                   const statusJobs = jobsByStatus[status];
+                  // Only show sections that have jobs
                   if (statusJobs.length === 0) return null;
                   
-                  const statusColor = getStatusColor(status);
-                  
                   return (
-                    <View key={status} style={styles.statusSection}>
-                      <View style={styles.statusHeader}>
-                        <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-                        <Text style={[styles.statusTitle, { color: colors.text }]}>{status}</Text>
-                        <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
-                          <Text style={[styles.statusCount, { color: statusColor }]}>{statusJobs.length}</Text>
-                        </View>
-                      </View>
-                      {statusJobs.map((job: Job) => (
-                        <TouchableOpacity
-                          key={job.id}
-                          style={[styles.jobCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                          onPress={() => handleJobPress(job.id)}
-                        >
-                          <View style={[styles.jobAccent, { backgroundColor: statusColor }]} />
-                          <View style={styles.jobContent}>
-                            <Text style={[styles.jobTitle, { color: colors.text }]}>{job.title}</Text>
-                            <Text style={[styles.jobCompany, { color: colors.textSecondary }]}>{job.company}</Text>
-                          </View>
-                          <Text style={[styles.chevron, { color: colors.textTertiary }]}>›</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
+                    <CollapsibleStatusSection
+                      key={status}
+                      status={status}
+                      jobs={statusJobs}
+                      isExpanded={expandedSections[status]}
+                      onToggle={() => handleToggleSection(status)}
+                      onJobPress={handleJobPress}
+                    />
                   );
                 })}
+              </View>
+            )}
+
+            {/* Search Results - Flat list with status badges */}
+            {jobs.length > 0 && isSearching && (
+              <View style={styles.jobsSection}>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                  Search Results ({filteredJobs.length})
+                </Text>
+                {filteredJobs.length > 0 ? (
+                  filteredJobs.map((job: Job) => {
+                    const statusColor = getStatusColor(job.status);
+                    return (
+                      <TouchableOpacity
+                        key={job.id}
+                        style={[styles.jobCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                        onPress={() => handleJobPress(job.id)}
+                      >
+                        <View style={[styles.jobAccent, { backgroundColor: statusColor }]} />
+                        <View style={styles.jobContent}>
+                          <View style={styles.jobHeader}>
+                            <Text style={[styles.jobTitle, { color: colors.text }]} numberOfLines={1}>{job.title}</Text>
+                            <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+                              <Text style={[styles.statusBadgeText, { color: statusColor }]}>{job.status}</Text>
+                            </View>
+                          </View>
+                          <Text style={[styles.jobCompany, { color: colors.textSecondary }]}>{job.company}</Text>
+                        </View>
+                        <Text style={[styles.chevron, { color: colors.textTertiary }]}>›</Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                ) : (
+                  <View style={styles.searchEmptyState}>
+                    <View style={[styles.searchEmptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                      <Ionicons name="search-outline" size={32} color={colors.textTertiary} />
+                    </View>
+                    <Text style={[styles.searchEmptyTitle, { color: colors.text }]}>
+                      No results found
+                    </Text>
+                    <Text style={[styles.searchEmptyMessage, { color: colors.textSecondary }]}>
+                      No jobs match "{searchQuery}"
+                    </Text>
+                    <Text style={[styles.searchEmptyHint, { color: colors.textTertiary }]}>
+                      Try adjusting your search or check for typos
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
           </>
@@ -214,6 +364,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
     borderBottomWidth: 1,
+    minHeight: 72,
   },
   welcomeText: {
     fontFamily: fontFamily.regular,
@@ -222,6 +373,43 @@ const styles = StyleSheet.create({
   titleText: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.xl,
+  },
+  searchIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  expandedSearchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchBackButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    height: 44,
+  },
+  searchInputIcon: {
+    marginRight: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    padding: 0,
   },
   scrollView: {
     flex: 1,
@@ -339,34 +527,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  statusSection: {
-    marginBottom: spacing.lg,
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: spacing.sm,
-  },
-  statusTitle: {
-    fontFamily: fontFamily.semibold,
-    fontSize: fontSize.sm,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.full,
-    marginLeft: spacing.sm,
-  },
-  statusCount: {
-    fontFamily: fontFamily.medium,
-    fontSize: fontSize.xs,
-  },
   jobCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -383,19 +543,79 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.md,
   },
+  jobHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   jobTitle: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.base,
+    flex: 1,
   },
   jobCompany: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.sm,
     marginTop: 2,
   },
+  statusBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.full,
+    marginLeft: spacing.sm,
+  },
+  statusBadgeText: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.xs,
+    textTransform: 'capitalize',
+  },
   chevron: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize['2xl'],
     paddingRight: spacing.md,
+  },
+  noResultsContainer: {
+    padding: spacing.xl,
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.base,
+    marginBottom: spacing.xs,
+  },
+  noResultsHint: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+  },
+  searchEmptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing['3xl'],
+    paddingHorizontal: spacing.lg,
+  },
+  searchEmptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  searchEmptyTitle: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.lg,
+    marginBottom: spacing.sm,
+  },
+  searchEmptyMessage: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  searchEmptyHint: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+    textAlign: 'center',
   },
   fab: {
     position: 'absolute',

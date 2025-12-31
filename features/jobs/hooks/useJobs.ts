@@ -44,8 +44,10 @@ export const useJobs = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, ...data }: { id: string } & Partial<Job>) => 
       db.updateJob(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalidate both the jobs list and the individual job query
       queryClient.invalidateQueries({ queryKey: JOBS_KEY });
+      queryClient.invalidateQueries({ queryKey: ['job', variables.id] });
     },
   });
 
@@ -61,8 +63,10 @@ export const useJobs = () => {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: JobStatus }) =>
       db.updateJob(id, { status }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalidate both the jobs list and the individual job query
       queryClient.invalidateQueries({ queryKey: JOBS_KEY });
+      queryClient.invalidateQueries({ queryKey: ['job', variables.id] });
     },
   });
 

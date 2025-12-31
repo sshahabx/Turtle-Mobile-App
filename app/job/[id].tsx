@@ -2,19 +2,21 @@
  * Job Detail Screen
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, Alert, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useJob } from '../../features/jobs/hooks/useJob';
 import { useJobs } from '../../features/jobs/hooks/useJobs';
 import { useHaptics } from '../../hooks';
 import { useTheme } from '../../hooks/useTheme';
+import { useToast } from '../../components/ui/Toast';
 import { StatusBadge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { JobStatus } from '../../types';
 import { formatDate } from '../../utils/date';
-import { fontFamily, fontSize, spacing } from '../../theme';
+import { fontFamily, fontSize, spacing, layoutSpacing } from '../../theme';
 
 export default function JobDetailScreen() {
   const router = useRouter();
@@ -23,15 +25,25 @@ export default function JobDetailScreen() {
   const { updateStatus, deleteJob, isDeleting } = useJobs();
   const { success, error: hapticError } = useHaptics();
   const { colors } = useTheme();
+  const { showToast } = useToast();
+  const [updatingStatus, setUpdatingStatus] = useState<JobStatus | null>(null);
 
   const handleStatusChange = async (status: JobStatus) => {
-    if (!id) return;
+    if (!id || updatingStatus) return;
+    
+    // Don't update if already at this status
+    if (job?.status === status) return;
+    
+    setUpdatingStatus(status);
     try {
       await updateStatus({ id, status });
       await success();
+      showToast(`Status updated to ${status}`, 'success');
     } catch (err) {
       await hapticError();
-      Alert.alert('Error', 'Failed to update status.');
+      showToast('Failed to update status. Please try again.', 'error');
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -49,10 +61,11 @@ export default function JobDetailScreen() {
           try {
             await deleteJob(id!);
             await success();
+            showToast('Job deleted successfully', 'success');
             router.back();
           } catch (err) {
             await hapticError();
-            Alert.alert('Error', 'Failed to delete job.');
+            showToast('Failed to delete job. Please try again.', 'error');
           }
         },
       },
@@ -80,6 +93,22 @@ export default function JobDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      {/* Header with back button */}
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
+          Job Details
+        </Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           <Text style={[styles.title, { color: colors.text }]}>{job.title}</Text>
@@ -112,25 +141,35 @@ export default function JobDetailScreen() {
           <View style={styles.statusSection}>
             <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>Update Status</Text>
             <View style={styles.statusButtons}>
-              {Object.values(JobStatus).map((status) => (
-                <TouchableOpacity
-                  key={status}
-                  onPress={() => handleStatusChange(status)}
-                  style={[
-                    styles.statusButton,
-                    { backgroundColor: colors.backgroundTertiary },
-                    job.status === status && { backgroundColor: colors.primary },
-                  ]}
-                >
-                  <Text style={[
-                    styles.statusButtonText,
-                    { color: colors.text },
-                    job.status === status && { color: colors.textInverse },
-                  ]}>
-                    {status}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {Object.values(JobStatus).map((status) => {
+                const isCurrentStatus = job.status === status;
+                const isUpdating = updatingStatus === status;
+                return (
+                  <TouchableOpacity
+                    key={status}
+                    onPress={() => handleStatusChange(status)}
+                    disabled={isUpdating || updatingStatus !== null}
+                    style={[
+                      styles.statusButton,
+                      { backgroundColor: colors.backgroundTertiary },
+                      isCurrentStatus && { backgroundColor: colors.primary },
+                      (isUpdating || (updatingStatus !== null && !isCurrentStatus)) && { opacity: 0.6 },
+                    ]}
+                  >
+                    {isUpdating ? (
+                      <ActivityIndicator size="small" color={colors.textInverse} />
+                    ) : (
+                      <Text style={[
+                        styles.statusButtonText,
+                        { color: colors.text },
+                        isCurrentStatus && { color: colors.textInverse },
+                      ]}>
+                        {status}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         </View>
@@ -151,6 +190,28 @@ export default function JobDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: layoutSpacing.headerHeight,
+    paddingHorizontal: spacing.sm,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.lg,
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 44,
   },
   loadingContainer: {
     flex: 1,

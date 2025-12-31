@@ -196,3 +196,39 @@ export const STATUS_LABELS: Record<JobStatus, string> = {
   [JobStatus.ACCEPTED]: 'Accepted',
   [JobStatus.REJECTED]: 'Rejected',
 };
+
+/**
+ * Filters jobs by search query
+ * 
+ * Searches across title, company, and notes fields with case-insensitive matching.
+ * Returns all jobs when query is empty or whitespace-only.
+ * 
+ * @param jobs - Array of jobs to filter
+ * @param query - Search query string
+ * @returns Filtered array of jobs matching the query
+ * 
+ * Property 4: Search Filter Matches on Title, Company, and Notes
+ * - Filtered results contain exactly the jobs where the query appears as a substring
+ *   (case-insensitive) in the title, company, OR notes fields
+ * - An empty query returns all jobs
+ * 
+ * Requirements: 2.2, 2.3, 2.4
+ */
+export function filterJobsBySearch(jobs: Job[], query: string): Job[] {
+  const trimmedQuery = query.trim();
+  
+  // Return all jobs when query is empty
+  if (!trimmedQuery) {
+    return jobs;
+  }
+  
+  const lowerQuery = trimmedQuery.toLowerCase();
+  
+  return jobs.filter((job) => {
+    const titleMatch = job.title.toLowerCase().includes(lowerQuery);
+    const companyMatch = job.company.toLowerCase().includes(lowerQuery);
+    const notesMatch = job.notes?.toLowerCase().includes(lowerQuery) ?? false;
+    
+    return titleMatch || companyMatch || notesMatch;
+  });
+}

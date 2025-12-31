@@ -8,6 +8,7 @@ export { StatsHeader } from './StatsHeader';
 export { DailyProgress } from './DailyProgress';
 export { AcceptedJobBanner } from './AcceptedJobBanner';
 export { StatusAccordion } from './StatusAccordion';
+export { CollapsibleStatusSection } from './CollapsibleStatusSection';
 export { JobCard } from './JobCard';
 export { EmptyState } from './EmptyState';
 export { GoalAchievementNotification } from './GoalAchievementNotification';

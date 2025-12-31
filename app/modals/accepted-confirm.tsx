@@ -9,12 +9,14 @@
  */
 
 import React from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useJob } from '../../features/jobs/hooks/useJob';
+import { useTheme } from '../../hooks/useTheme';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { fontFamily, fontSize, spacing } from '../../theme';
 
 export default function AcceptedConfirmModal() {
   const router = useRouter();
@@ -22,118 +24,119 @@ export default function AcceptedConfirmModal() {
     jobId: string;
     existingJobId: string;
   }>();
+  const { colors, isDark } = useTheme();
   
   const { job: newJob, isLoading: isLoadingNew } = useJob(jobId);
   const { job: existingJob, isLoading: isLoadingExisting } = useJob(existingJobId);
 
-  // Handle cancel - go back without changes
   const handleCancel = () => {
     router.back();
   };
 
-  // Handle replace - proceed to offer details form with replace flag
   const handleReplace = () => {
-    // Navigate to offer details with replace flag
     router.replace({
       pathname: '/modals/offer-details-replace',
-      params: { 
-        jobId, 
-        existingJobId,
-      },
+      params: { jobId, existingJobId },
     });
   };
 
-  // Loading state
   if (isLoadingNew || isLoadingExisting) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={['top']}>
-      {/* Header */}
-      <View className="px-4 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <Text className="text-xl font-bold text-gray-900 dark:text-white text-center">
-          Replace Accepted Offer?
-        </Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Replace Accepted Offer?</Text>
       </View>
 
-      <View className="flex-1 p-4">
-        {/* Warning Icon */}
-        <View className="items-center mb-6 mt-4">
-          <Text className="text-5xl">⚠️</Text>
+      <View style={styles.content}>
+        <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(234, 179, 8, 0.1)' : '#fef9c3' }]}>
+          <View style={[styles.warningTriangle, { borderBottomColor: isDark ? '#facc15' : '#ca8a04' }]} />
         </View>
 
-        {/* Explanation */}
-        <Text className="text-center text-gray-700 dark:text-gray-300 mb-6">
+        <Text style={[styles.explanation, { color: colors.textSecondary }]}>
           You already have an accepted job offer. Accepting this new offer will replace your current accepted job.
         </Text>
 
-        {/* Current Accepted Job */}
         {existingJob && (
-          <Card className="mb-4 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-            <Text className="text-xs text-green-600 dark:text-green-500 mb-1">
-              Currently Accepted
-            </Text>
-            <Text className="text-lg font-semibold text-green-800 dark:text-green-300">
-              {existingJob.title}
-            </Text>
-            <Text className="text-green-700 dark:text-green-400">
-              {existingJob.company}
-            </Text>
+          <Card style={[styles.jobCard, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.1)' : '#f0fdf4', borderColor: isDark ? '#166534' : '#bbf7d0' }]}>
+            <Text style={[styles.cardLabel, { color: isDark ? '#4ade80' : '#166534' }]}>Currently Accepted</Text>
+            <Text style={[styles.cardTitle, { color: isDark ? '#86efac' : '#166534' }]}>{existingJob.title}</Text>
+            <Text style={[styles.cardCompany, { color: isDark ? '#4ade80' : '#15803d' }]}>{existingJob.company}</Text>
             {existingJob.offerSalary && (
-              <Text className="text-sm text-green-600 dark:text-green-500 mt-1">
-                💰 {existingJob.offerSalary}
-              </Text>
+              <Text style={[styles.cardSalary, { color: isDark ? '#4ade80' : '#166534' }]}>{existingJob.offerSalary}</Text>
             )}
           </Card>
         )}
 
-        {/* Arrow */}
-        <View className="items-center my-2">
-          <Text className="text-2xl text-gray-400">↓</Text>
+        <View style={styles.arrowContainer}>
+          <Text style={[styles.arrow, { color: colors.textTertiary }]}>↓</Text>
         </View>
 
-        {/* New Job to Accept */}
         {newJob && (
-          <Card className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-            <Text className="text-xs text-blue-600 dark:text-blue-500 mb-1">
-              New Offer
-            </Text>
-            <Text className="text-lg font-semibold text-blue-800 dark:text-blue-300">
-              {newJob.title}
-            </Text>
-            <Text className="text-blue-700 dark:text-blue-400">
-              {newJob.company}
-            </Text>
+          <Card style={[styles.jobCard, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff', borderColor: isDark ? '#1d4ed8' : '#bfdbfe' }]}>
+            <Text style={[styles.cardLabel, { color: isDark ? '#60a5fa' : '#1d4ed8' }]}>New Offer</Text>
+            <Text style={[styles.cardTitle, { color: isDark ? '#93c5fd' : '#1e40af' }]}>{newJob.title}</Text>
+            <Text style={[styles.cardCompany, { color: isDark ? '#60a5fa' : '#1d4ed8' }]}>{newJob.company}</Text>
           </Card>
         )}
 
-        {/* Warning Text */}
-        <Text className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
+        <Text style={[styles.warningText, { color: colors.textTertiary }]}>
           The previous accepted job will be changed to "Offered" status.
         </Text>
 
-        {/* Action Buttons */}
-        <View className="flex-row mt-auto">
-          <Button
-            variant="outline"
-            onPress={handleCancel}
-            className="flex-1 mr-2"
-          >
-            Keep Current
-          </Button>
-          <Button
-            onPress={handleReplace}
-            className="flex-1 ml-2"
-          >
-            Replace Offer
-          </Button>
+        <View style={styles.buttonRow}>
+          <View style={styles.buttonWrapper}>
+            <Button variant="outline" onPress={handleCancel}>Keep Current</Button>
+          </View>
+          <View style={styles.buttonWrapper}>
+            <Button onPress={handleReplace}>Replace Offer</Button>
+          </View>
         </View>
       </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: { paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, borderBottomWidth: 1 },
+  headerTitle: { fontFamily: fontFamily.bold, fontSize: fontSize.xl, textAlign: 'center' },
+  content: { flex: 1, padding: spacing.lg },
+  iconContainer: { 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignSelf: 'center',
+    marginBottom: spacing.lg, 
+    marginTop: spacing.lg 
+  },
+  warningTriangle: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 14,
+    borderRightWidth: 14,
+    borderBottomWidth: 24,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+  },
+  explanation: { fontFamily: fontFamily.regular, fontSize: fontSize.base, textAlign: 'center', marginBottom: spacing.lg },
+  jobCard: { marginBottom: spacing.lg, borderWidth: 1 },
+  cardLabel: { fontFamily: fontFamily.regular, fontSize: fontSize.xs, marginBottom: spacing.xs },
+  cardTitle: { fontFamily: fontFamily.semibold, fontSize: fontSize.lg },
+  cardCompany: { fontFamily: fontFamily.regular, fontSize: fontSize.base },
+  cardSalary: { fontFamily: fontFamily.regular, fontSize: fontSize.sm, marginTop: spacing.xs },
+  arrowContainer: { alignItems: 'center', marginVertical: spacing.sm },
+  arrow: { fontSize: 24 },
+  warningText: { fontFamily: fontFamily.regular, fontSize: fontSize.sm, textAlign: 'center', marginBottom: spacing.lg },
+  buttonRow: { flexDirection: 'row', marginTop: 'auto', gap: spacing.md },
+  buttonWrapper: { flex: 1 },
+});

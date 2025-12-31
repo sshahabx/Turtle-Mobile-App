@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "../hooks/useFonts";
 import { lightColors, darkColors } from "../theme/colors";
+import { ToastProvider } from "../components/ui/Toast";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,65 +59,67 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.flex}>
       <QueryClientProvider client={queryClient}>
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen 
-              name="modals/add-job" 
-              options={{ presentation: 'modal' }} 
-            />
-            <Stack.Screen 
-              name="modals/edit-job" 
-              options={{ presentation: 'modal' }} 
-            />
-            <Stack.Screen 
-              name="modals/add-note" 
-              options={{ presentation: 'modal' }} 
-            />
-            <Stack.Screen 
-              name="modals/edit-note" 
-              options={{ presentation: 'modal' }} 
-            />
-            <Stack.Screen 
-              name="modals/add-task" 
-              options={{ presentation: 'modal' }} 
-            />
-            <Stack.Screen 
-              name="modals/edit-task" 
-              options={{ presentation: 'modal' }} 
-            />
-            <Stack.Screen 
-              name="modals/add-habit" 
-              options={{ presentation: 'modal' }} 
-            />
-            <Stack.Screen 
-              name="modals/edit-habit" 
-              options={{ presentation: 'modal' }} 
-            />
-            <Stack.Screen 
-              name="modals/offer-details" 
-              options={{ presentation: 'modal' }} 
-            />
-            <Stack.Screen 
-              name="modals/offer-details-replace" 
-              options={{ presentation: 'modal' }} 
-            />
-            <Stack.Screen 
-              name="modals/accepted-confirm" 
-              options={{ presentation: 'modal' }} 
-            />
-            <Stack.Screen 
-              name="modals/goal-setting" 
-              options={{ presentation: 'modal' }} 
-            />
-            <Stack.Screen name="job/[id]" />
-            <Stack.Screen name="note/[id]" />
-            <Stack.Screen name="task/[id]" />
-            <Stack.Screen name="habit/[id]" />
-          </Stack>
-        </View>
+        <ToastProvider>
+          <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen 
+                name="modals/add-job" 
+                options={{ presentation: 'modal' }} 
+              />
+              <Stack.Screen 
+                name="modals/edit-job" 
+                options={{ presentation: 'modal' }} 
+              />
+              <Stack.Screen 
+                name="modals/add-note" 
+                options={{ presentation: 'modal' }} 
+              />
+              <Stack.Screen 
+                name="modals/edit-note" 
+                options={{ presentation: 'modal' }} 
+              />
+              <Stack.Screen 
+                name="modals/add-task" 
+                options={{ presentation: 'modal' }} 
+              />
+              <Stack.Screen 
+                name="modals/edit-task" 
+                options={{ presentation: 'modal' }} 
+              />
+              <Stack.Screen 
+                name="modals/add-habit" 
+                options={{ presentation: 'modal' }} 
+              />
+              <Stack.Screen 
+                name="modals/edit-habit" 
+                options={{ presentation: 'modal' }} 
+              />
+              <Stack.Screen 
+                name="modals/offer-details" 
+                options={{ presentation: 'modal' }} 
+              />
+              <Stack.Screen 
+                name="modals/offer-details-replace" 
+                options={{ presentation: 'modal' }} 
+              />
+              <Stack.Screen 
+                name="modals/accepted-confirm" 
+                options={{ presentation: 'modal' }} 
+              />
+              <Stack.Screen 
+                name="modals/goal-setting" 
+                options={{ presentation: 'modal' }} 
+              />
+              <Stack.Screen name="job/[id]" />
+              <Stack.Screen name="note/[id]" />
+              <Stack.Screen name="task/[id]" />
+              <Stack.Screen name="habit/[id]" />
+            </Stack>
+          </View>
+        </ToastProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );

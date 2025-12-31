@@ -1,40 +1,52 @@
 /**
  * JobCard Component
  * 
- * Displays a job application card with title, company, and status.
+ * Displays a minimalistic job application card with essential information only.
  * Uses centralized theme system for consistent styling.
  * 
  * Requirements:
  * - 1.3: Apply Outfit font throughout
  * - 3.1: Use zinc-based color palette
+ * - 6.3: Display only essential information: title, company, and relative date
+ * - 6.5: Maintain adequate whitespace between UI elements
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Job } from '../../types';
-import { formatDate, formatRelativeDate } from '../../utils/date';
+import { formatRelativeDate } from '../../utils/date';
 import { StatusBadge } from '../ui/Badge';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing, borderRadius } from '../../theme';
 
 export interface JobCardProps {
+  /** The job to display */
   job: Job;
+  /** Callback when the card is pressed */
   onPress?: () => void;
+  /** Whether to show the status badge (used in search results mode) */
   showStatus?: boolean;
 }
 
-export const JobCard = memo(function JobCard({ 
+export function JobCard({ 
   job, 
   onPress, 
   showStatus = false 
 }: JobCardProps) {
   const { colors } = useTheme();
   
+  // Ensure createdAt is a Date object
+  const createdAtDate = job.createdAt instanceof Date 
+    ? job.createdAt 
+    : new Date(job.createdAt);
+  
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
       style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      accessibilityRole="button"
+      accessibilityLabel={`${job.title} at ${job.company}, ${formatRelativeDate(createdAtDate)}`}
     >
       <View style={styles.row}>
         <View style={styles.content}>
@@ -47,27 +59,21 @@ export const JobCard = memo(function JobCard({
           </Text>
           
           <Text style={[styles.date, { color: colors.textTertiary }]}>
-            {formatRelativeDate(job.createdAt)}
+            {formatRelativeDate(createdAtDate)}
           </Text>
         </View>
 
         {showStatus && (
-          <StatusBadge status={job.status} />
+          <View style={styles.statusContainer}>
+            <StatusBadge status={job.status} />
+          </View>
         )}
 
         <Text style={[styles.chevron, { color: colors.textTertiary }]}>›</Text>
       </View>
-
-      {job.deadline && (
-        <View style={[styles.deadlineContainer, { borderTopColor: colors.border }]}>
-          <Text style={[styles.deadline, { color: colors.textSecondary }]}>
-            Deadline: {formatDate(job.deadline)}
-          </Text>
-        </View>
-      )}
     </TouchableOpacity>
   );
-});
+}
 
 const styles = StyleSheet.create({
   card: {
@@ -78,8 +84,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
@@ -99,19 +104,12 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.xs,
   },
+  statusContainer: {
+    marginRight: spacing.sm,
+  },
   chevron: {
     fontFamily: fontFamily.regular,
-    marginLeft: spacing.sm,
     fontSize: fontSize.xl,
-  },
-  deadlineContainer: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-  },
-  deadline: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.xs,
   },
 });
 

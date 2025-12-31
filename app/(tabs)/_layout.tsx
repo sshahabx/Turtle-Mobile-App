@@ -7,12 +7,14 @@
  * Requirements:
  * - 1.3: Apply Outfit font to tab labels
  * - 3.1: Use zinc-based color palette
+ * - 3.1, 3.2, 3.3, 3.4: Tab bar alignment and safe area handling
  */
 
 import { Tabs } from "expo-router";
 import { View, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../hooks/useTheme";
-import { fontFamily, spacing } from "../../theme";
+import { fontFamily, spacing, layoutSpacing } from "../../theme";
 
 /**
  * Tab Icon Component
@@ -77,6 +79,17 @@ function TabIcon({ name, focused, colors }: { name: string; focused: boolean; co
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  
+  // Calculate proper bottom padding based on safe area
+  // Minimum padding of 8px, plus safe area inset for devices with home indicator
+  const bottomPadding = Math.max(spacing.sm, insets.bottom) + spacing.sm;
+  
+  // Tab bar content height (icon + label + spacing)
+  const tabBarContentHeight = layoutSpacing.tabBarHeight;
+  
+  // Total tab bar height including safe area
+  const tabBarHeight = tabBarContentHeight + bottomPadding;
 
   return (
     <Tabs
@@ -85,15 +98,31 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          borderTopWidth: 1,
-          height: 85,
-          paddingBottom: 25,
-          paddingTop: spacing.sm + 2,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          height: tabBarHeight,
+          paddingBottom: bottomPadding,
+          paddingTop: spacing.sm,
+          // Ensure icons and labels are centered
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        tabBarItemStyle: {
+          // Center content within each tab item
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingVertical: spacing.xs,
         },
         tabBarLabelStyle: {
           fontFamily: fontFamily.medium,
           fontSize: 11,
           marginTop: spacing.xs,
+          // Ensure consistent label positioning
+          textAlign: 'center',
+        },
+        tabBarIconStyle: {
+          // Center icons within their container
+          alignItems: 'center',
+          justifyContent: 'center',
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textTertiary,
