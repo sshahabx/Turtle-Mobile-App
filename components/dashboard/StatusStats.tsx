@@ -28,9 +28,8 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; icon: keyof typeof Ionic
   [JobStatus.REJECTED]: { label: 'Rejected', icon: 'close-circle', color: statusColors.rejected },
 };
 
-// Priority order for display
+// Priority order for display (excluding ACCEPTED - shown in separate banner)
 const STATUS_PRIORITY: JobStatus[] = [
-  JobStatus.ACCEPTED,
   JobStatus.OFFERED,
   JobStatus.INTERVIEWING,
   JobStatus.APPLIED,
@@ -82,8 +81,8 @@ export const StatusStats = memo(function StatusStats({
     return null;
   }
 
-  // Calculate total for percentage display
-  const total = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+  // Calculate total for percentage display (excluding ACCEPTED)
+  const total = STATUS_PRIORITY.reduce((sum, status) => sum + (statusCounts[status] || 0), 0);
 
   return (
     <View style={styles.container}>

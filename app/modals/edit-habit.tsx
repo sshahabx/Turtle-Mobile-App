@@ -1,10 +1,11 @@
 /**
  * Edit Habit Modal Screen
+ * 
+ * Displays as a bottom sheet taking 70% of screen height.
  */
 
 import React from 'react';
-import { View, Text, Alert, ActivityIndicator, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, Alert, ActivityIndicator, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useHabit, useHabits } from '../../features/habits/hooks/useHabits';
 import { useHaptics } from '../../hooks';
@@ -12,6 +13,9 @@ import { useTheme } from '../../hooks/useTheme';
 import { HabitForm } from '../../components/habits/HabitForm';
 import { HabitCreateInput } from '../../types';
 import { fontFamily, fontSize, spacing } from '../../theme';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
 
 export default function EditHabitModal() {
   const router = useRouter();
@@ -37,39 +41,74 @@ export default function EditHabitModal() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </SafeAreaView>
+      <View style={styles.overlay}>
+        <Pressable style={styles.backdrop} onPress={handleCancel} />
+        <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </View>
+      </View>
     );
   }
 
   if (!habit) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>Habit not found</Text>
-      </SafeAreaView>
+      <View style={styles.overlay}>
+        <Pressable style={styles.backdrop} onPress={handleCancel} />
+        <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
+          <View style={styles.loadingContainer}>
+            <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>Habit not found</Text>
+          </View>
+        </View>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Habit</Text>
+    <View style={styles.overlay}>
+      <Pressable style={styles.backdrop} onPress={handleCancel} />
+      <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
+        <View style={styles.handleContainer}>
+          <View style={[styles.handle, { backgroundColor: colors.border }]} />
+        </View>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Habit</Text>
+        </View>
+        <HabitForm
+          initialValues={habit}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          isLoading={isUpdating}
+          submitLabel="Save Changes"
+        />
       </View>
-      <HabitForm
-        initialValues={habit}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        isLoading={isUpdating}
-        submitLabel="Save Changes"
-      />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  container: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+  },
+  handleContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
   },
   loadingContainer: {
     flex: 1,
@@ -78,7 +117,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
   },
   headerTitle: {

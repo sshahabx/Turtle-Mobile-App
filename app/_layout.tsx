@@ -66,27 +66,51 @@ export default function RootLayout() {
               />
               <Stack.Screen 
                 name="modals/add-note" 
-                options={{ presentation: 'modal' }} 
+                options={{ 
+                  presentation: 'transparentModal',
+                  animation: 'slide_from_bottom',
+                  contentStyle: { backgroundColor: 'transparent' },
+                }} 
               />
               <Stack.Screen 
                 name="modals/edit-note" 
-                options={{ presentation: 'modal' }} 
+                options={{ 
+                  presentation: 'transparentModal',
+                  animation: 'slide_from_bottom',
+                  contentStyle: { backgroundColor: 'transparent' },
+                }} 
               />
               <Stack.Screen 
                 name="modals/add-task" 
-                options={{ presentation: 'modal' }} 
+                options={{ 
+                  presentation: 'transparentModal',
+                  animation: 'slide_from_bottom',
+                  contentStyle: { backgroundColor: 'transparent' },
+                }} 
               />
               <Stack.Screen 
                 name="modals/edit-task" 
-                options={{ presentation: 'modal' }} 
+                options={{ 
+                  presentation: 'transparentModal',
+                  animation: 'slide_from_bottom',
+                  contentStyle: { backgroundColor: 'transparent' },
+                }} 
               />
               <Stack.Screen 
                 name="modals/add-habit" 
-                options={{ presentation: 'modal' }} 
+                options={{ 
+                  presentation: 'transparentModal',
+                  animation: 'slide_from_bottom',
+                  contentStyle: { backgroundColor: 'transparent' },
+                }} 
               />
               <Stack.Screen 
                 name="modals/edit-habit" 
-                options={{ presentation: 'modal' }} 
+                options={{ 
+                  presentation: 'transparentModal',
+                  animation: 'slide_from_bottom',
+                  contentStyle: { backgroundColor: 'transparent' },
+                }} 
               />
               <Stack.Screen 
                 name="modals/offer-details" 
@@ -112,9 +136,30 @@ export default function RootLayout() {
                   contentStyle: { backgroundColor: 'transparent' },
                 }} 
               />
-              <Stack.Screen name="note/[id]" />
-              <Stack.Screen name="task/[id]" />
-              <Stack.Screen name="habit/[id]" />
+              <Stack.Screen 
+                name="note/[id]" 
+                options={{ 
+                  presentation: 'transparentModal',
+                  animation: 'slide_from_bottom',
+                  contentStyle: { backgroundColor: 'transparent' },
+                }} 
+              />
+              <Stack.Screen 
+                name="task/[id]" 
+                options={{ 
+                  presentation: 'transparentModal',
+                  animation: 'slide_from_bottom',
+                  contentStyle: { backgroundColor: 'transparent' },
+                }} 
+              />
+              <Stack.Screen 
+                name="habit/[id]" 
+                options={{ 
+                  presentation: 'transparentModal',
+                  animation: 'slide_from_bottom',
+                  contentStyle: { backgroundColor: 'transparent' },
+                }} 
+              />
             </Stack>
         </ToastProvider>
       </QueryClientProvider>

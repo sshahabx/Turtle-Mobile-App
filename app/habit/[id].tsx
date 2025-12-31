@@ -1,18 +1,21 @@
 /**
  * Habit Detail Screen
+ * 
+ * Displays as a bottom sheet taking 70% of screen height.
  */
 
 import React from 'react';
-import { View, Text, ScrollView, Alert, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, ScrollView, Alert, ActivityIndicator, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useHabit, useHabits } from '../../features/habits/hooks/useHabits';
 import { useHaptics } from '../../hooks';
 import { useTheme } from '../../hooks/useTheme';
 import { Button } from '../../components/ui/Button';
 import { isCompletedToday } from '../../features/habits/utils/habitUtils';
 import { fontFamily, fontSize, spacing } from '../../theme';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
 
 export default function HabitDetailScreen() {
   const router = useRouter();
@@ -24,7 +27,7 @@ export default function HabitDetailScreen() {
 
   const completedToday = habit ? isCompletedToday(habit) : false;
 
-  const handleBack = () => {
+  const handleClose = () => {
     router.back();
   };
 
@@ -66,103 +69,130 @@ export default function HabitDetailScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </SafeAreaView>
+      <View style={styles.overlay}>
+        <Pressable style={styles.backdrop} onPress={handleClose} />
+        <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </View>
+      </View>
     );
   }
 
   if (error || !habit) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>Habit not found</Text>
-        <View style={styles.goBackButton}>
-          <Button onPress={() => router.back()}>Go Back</Button>
+      <View style={styles.overlay}>
+        <Pressable style={styles.backdrop} onPress={handleClose} />
+        <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
+          <View style={styles.loadingContainer}>
+            <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>Habit not found</Text>
+            <View style={styles.goBackButton}>
+              <Button onPress={handleClose}>Go Back</Button>
+            </View>
+          </View>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Header with back button */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Habit Details</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <Text style={[styles.title, { color: colors.text }]}>{habit.name}</Text>
-        {habit.description && (
-          <Text style={[styles.description, { color: colors.textSecondary }]}>{habit.description}</Text>
-        )}
-
-        <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
-          <View style={styles.statRow}>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Current Streak</Text>
-            <Text style={[styles.statValuePrimary, { color: colors.primary }]}>{habit.currentStreak} days</Text>
-          </View>
-          <View style={styles.statRow}>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Best Streak</Text>
-            <Text style={[styles.statValue, { color: colors.text }]}>{habit.bestStreak} days</Text>
-          </View>
-          <View style={styles.statRowLast}>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Target Days</Text>
-            <Text style={[styles.statValue, { color: colors.text }]}>{habit.targetDays} days/week</Text>
-          </View>
+    <View style={styles.overlay}>
+      <Pressable style={styles.backdrop} onPress={handleClose} />
+      <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
+        {/* Handle */}
+        <View style={styles.handleContainer}>
+          <View style={[styles.handle, { backgroundColor: colors.border }]} />
         </View>
 
-        {completedToday && (
-          <View style={[styles.completedBanner, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.2)' : '#dcfce7' }]}>
-            <Text style={[styles.completedText, { color: isDark ? '#4ade80' : '#166534' }]}>Completed today!</Text>
-          </View>
-        )}
-      </ScrollView>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Habit Details</Text>
+        </View>
 
-      <View style={[styles.footer, { borderTopColor: colors.border }]}>
-        {!completedToday && (
-          <View style={styles.completeButtonWrapper}>
-            <Button onPress={handleComplete}>Complete Today</Button>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.content}>
+            <Text style={[styles.title, { color: colors.text }]}>{habit.name}</Text>
+            {habit.description && (
+              <Text style={[styles.description, { color: colors.textSecondary }]}>{habit.description}</Text>
+            )}
+
+            <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
+              <View style={styles.statRow}>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Current Streak</Text>
+                <Text style={[styles.statValuePrimary, { color: colors.primary }]}>{habit.currentStreak} days</Text>
+              </View>
+              <View style={styles.statRow}>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Best Streak</Text>
+                <Text style={[styles.statValue, { color: colors.text }]}>{habit.bestStreak} days</Text>
+              </View>
+              <View style={styles.statRowLast}>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Target Days</Text>
+                <Text style={[styles.statValue, { color: colors.text }]}>{habit.targetDays} days/week</Text>
+              </View>
+            </View>
+
+            {completedToday && (
+              <View style={[styles.completedBanner, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.2)' : '#dcfce7' }]}>
+                <Text style={[styles.completedText, { color: isDark ? '#4ade80' : '#166534' }]}>Completed today!</Text>
+              </View>
+            )}
           </View>
-        )}
-        <View style={styles.actionButtons}>
-          <View style={styles.buttonWrapper}>
-            <Button variant="outline" onPress={handleEdit}>Edit</Button>
-          </View>
-          <View style={styles.buttonWrapper}>
-            <Button variant="destructive" onPress={handleDelete} loading={isDeleting}>Delete</Button>
+        </ScrollView>
+
+        {/* Footer */}
+        <View style={[styles.footer, { borderTopColor: colors.border }]}>
+          {!completedToday && (
+            <View style={styles.completeButtonWrapper}>
+              <Button onPress={handleComplete}>Complete Today</Button>
+            </View>
+          )}
+          <View style={styles.actionButtons}>
+            <View style={styles.buttonWrapper}>
+              <Button variant="outline" onPress={handleEdit}>Edit</Button>
+            </View>
+            <View style={styles.buttonWrapper}>
+              <Button variant="destructive" onPress={handleDelete} loading={isDeleting}>Delete</Button>
+            </View>
           </View>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  container: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+  },
+  handleContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
   },
-  backButton: {
-    padding: spacing.sm,
-  },
   headerTitle: {
-    flex: 1,
-    fontFamily: fontFamily.semibold,
-    fontSize: fontSize.lg,
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xl,
     textAlign: 'center',
-  },
-  headerSpacer: {
-    width: 40,
   },
   loadingContainer: {
     flex: 1,
@@ -179,7 +209,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
+  content: {
     padding: spacing.lg,
   },
   title: {

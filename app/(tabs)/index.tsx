@@ -297,11 +297,11 @@ export default function DashboardScreen() {
               </View>
             )}
 
-            {/* Jobs by Status - Collapsible Sections */}
+            {/* Jobs by Status - Collapsible Sections (excluding ACCEPTED - shown in banner) */}
             {jobs.length > 0 && !isSearching && (
               <View style={styles.jobsSection}>
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Applications by Status</Text>
-                {STATUS_DISPLAY_ORDER.map((status) => {
+                {STATUS_DISPLAY_ORDER.filter(status => status !== JobStatus.ACCEPTED).map((status) => {
                   const statusJobs = jobsByStatus[status];
                   // Only show sections that have jobs
                   if (statusJobs.length === 0) return null;
@@ -320,51 +320,58 @@ export default function DashboardScreen() {
               </View>
             )}
 
-            {/* Search Results - Flat list with status badges */}
+            {/* Search Results - Flat list with status badges (excluding ACCEPTED) */}
             {jobs.length > 0 && isSearching && (
               <View style={styles.jobsSection}>
-                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                  Search Results ({filteredJobs.length})
-                </Text>
-                {filteredJobs.length > 0 ? (
-                  filteredJobs.map((job: Job) => {
-                    const statusColor = getStatusColor(job.status);
-                    return (
-                      <TouchableOpacity
-                        key={job.id}
-                        style={[styles.jobCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                        onPress={() => handleJobPress(job.id)}
-                      >
-                        <View style={[styles.jobAccent, { backgroundColor: statusColor }]} />
-                        <View style={styles.jobContent}>
-                          <View style={styles.jobHeader}>
-                            <Text style={[styles.jobTitle, { color: colors.text }]} numberOfLines={1}>{job.title}</Text>
-                            <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
-                              <Text style={[styles.statusBadgeText, { color: statusColor }]}>{job.status}</Text>
-                            </View>
+                {(() => {
+                  const nonAcceptedResults = filteredJobs.filter((job: Job) => job.status !== JobStatus.ACCEPTED);
+                  return (
+                    <>
+                      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                        Search Results ({nonAcceptedResults.length})
+                      </Text>
+                      {nonAcceptedResults.length > 0 ? (
+                        nonAcceptedResults.map((job: Job) => {
+                          const statusColor = getStatusColor(job.status);
+                          return (
+                            <TouchableOpacity
+                              key={job.id}
+                              style={[styles.jobCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                              onPress={() => handleJobPress(job.id)}
+                            >
+                              <View style={[styles.jobAccent, { backgroundColor: statusColor }]} />
+                              <View style={styles.jobContent}>
+                                <View style={styles.jobHeader}>
+                                  <Text style={[styles.jobTitle, { color: colors.text }]} numberOfLines={1}>{job.title}</Text>
+                                  <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+                                    <Text style={[styles.statusBadgeText, { color: statusColor }]}>{job.status}</Text>
+                                  </View>
+                                </View>
+                                <Text style={[styles.jobCompany, { color: colors.textSecondary }]}>{job.company}</Text>
+                              </View>
+                              <Text style={[styles.chevron, { color: colors.textTertiary }]}>›</Text>
+                            </TouchableOpacity>
+                          );
+                        })
+                      ) : (
+                        <View style={styles.searchEmptyState}>
+                          <View style={[styles.searchEmptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                            <Ionicons name="search-outline" size={32} color={colors.textTertiary} />
                           </View>
-                          <Text style={[styles.jobCompany, { color: colors.textSecondary }]}>{job.company}</Text>
+                          <Text style={[styles.searchEmptyTitle, { color: colors.text }]}>
+                            No results found
+                          </Text>
+                          <Text style={[styles.searchEmptyMessage, { color: colors.textSecondary }]}>
+                            No jobs match "{searchQuery}"
+                          </Text>
+                          <Text style={[styles.searchEmptyHint, { color: colors.textTertiary }]}>
+                            Try adjusting your search or check for typos
+                          </Text>
                         </View>
-                        <Text style={[styles.chevron, { color: colors.textTertiary }]}>›</Text>
-                      </TouchableOpacity>
-                    );
-                  })
-                ) : (
-                  <View style={styles.searchEmptyState}>
-                    <View style={[styles.searchEmptyIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                      <Ionicons name="search-outline" size={32} color={colors.textTertiary} />
-                    </View>
-                    <Text style={[styles.searchEmptyTitle, { color: colors.text }]}>
-                      No results found
-                    </Text>
-                    <Text style={[styles.searchEmptyMessage, { color: colors.textSecondary }]}>
-                      No jobs match "{searchQuery}"
-                    </Text>
-                    <Text style={[styles.searchEmptyHint, { color: colors.textTertiary }]}>
-                      Try adjusting your search or check for typos
-                    </Text>
-                  </View>
-                )}
+                      )}
+                    </>
+                  );
+                })()}
               </View>
             )}
           </>
