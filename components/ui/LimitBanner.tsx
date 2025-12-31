@@ -9,6 +9,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useLimits } from '../../hooks/useLimits';
 import { EntityType } from '../../config/limits';
@@ -33,26 +34,26 @@ export interface LimitBannerProps {
 const getSchemeColors = (
   scheme: ColorScheme,
   isDark: boolean
-): { bg: string; text: string; icon: string } => {
+): { bg: string; text: string; iconName: keyof typeof Ionicons.glyphMap } => {
   switch (scheme) {
     case 'alert':
       return {
         bg: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fee2e2',
         text: isDark ? '#f87171' : '#b91c1c',
-        icon: '⚠️',
+        iconName: 'warning-outline',
       };
     case 'warning':
       return {
         bg: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7',
         text: isDark ? '#fbbf24' : '#b45309',
-        icon: '📊',
+        iconName: 'bar-chart-outline',
       };
     case 'neutral':
     default:
       return {
         bg: isDark ? darkColors.backgroundTertiary : lightColors.backgroundTertiary,
         text: isDark ? darkColors.textSecondary : lightColors.textSecondary,
-        icon: '📊',
+        iconName: 'bar-chart-outline',
       };
   }
 };
@@ -119,7 +120,12 @@ export function LimitBanner({
       accessibilityHint="Opens upgrade options"
     >
       <View style={styles.content}>
-        <Text style={styles.icon}>{schemeColors.icon}</Text>
+        <Ionicons 
+          name={schemeColors.iconName} 
+          size={16} 
+          color={schemeColors.text} 
+          style={styles.icon}
+        />
         <Text style={[styles.text, { color: schemeColors.text }]}>
           {limitText}
         </Text>
@@ -147,7 +153,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   icon: {
-    fontSize: fontSize.base,
     marginRight: spacing.sm,
   },
   text: {

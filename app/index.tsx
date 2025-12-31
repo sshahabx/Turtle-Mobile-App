@@ -14,7 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { lightColors, darkColors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 import { spacing } from '../theme/spacing';
-import * as db from '../services/database';
 import { isAuthenticated as checkOAuthAuth } from '../features/auth/services/authService';
 
 export default function Index() {
@@ -29,11 +28,8 @@ export default function Index() {
       try {
         // Check if user is authenticated via OAuth
         const isOAuthAuthenticated = await checkOAuthAuth();
-        
-        // Check if user has completed onboarding (offline mode)
-        const isOnboarded = await db.isOnboarded();
 
-        console.log('Auth check:', { isOAuthAuthenticated, isOnboarded });
+        console.log('Auth check:', { isOAuthAuthenticated });
 
         // Small delay for splash screen visibility
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -42,12 +38,8 @@ export default function Index() {
           // User is authenticated via OAuth - go to main app
           console.log('User authenticated via OAuth, going to tabs');
           router.replace('/(tabs)');
-        } else if (isOnboarded) {
-          // User is in offline mode - go to main app
-          console.log('User in offline mode, going to tabs');
-          router.replace('/(tabs)');
         } else {
-          // User needs to sign in
+          // User needs to sign in - don't assume offline mode
           console.log('User not authenticated, going to sign-in');
           router.replace('/(auth)/sign-in');
         }

@@ -484,6 +484,7 @@ const styles = StyleSheet.create({
   },
   limitBannerContainer: {
     marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
   progressHeader: {
