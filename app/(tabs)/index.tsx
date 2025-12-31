@@ -23,6 +23,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useJobs } from '../../features/jobs/hooks/useJobs';
 import { useGoal } from '../../features/user/hooks/useGoal';
+import { useAuth } from '../../features/auth/hooks/useAuth';
 import { groupJobsByStatus, STATUS_DISPLAY_ORDER, filterJobsBySearch, getJobCountsByStatus } from '../../features/jobs/utils/jobUtils';
 import { Job, JobStatus } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
@@ -41,6 +42,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 export default function DashboardScreen() {
   const { jobs, isLoading, refetch } = useJobs();
   const { dailyGoal } = useGoal();
+  const { user } = useAuth();
   const router = useRouter();
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
@@ -201,7 +203,7 @@ export default function DashboardScreen() {
           <>
             <View>
               <Text style={[styles.welcomeText, { color: colors.textSecondary }]}>Welcome back,</Text>
-              <Text style={[styles.titleText, { color: colors.text }]}>Job Seeker</Text>
+              <Text style={[styles.titleText, { color: colors.text }]}>{user?.name || 'Job Seeker'}</Text>
             </View>
             <TouchableOpacity 
               onPress={handleSearchToggle}

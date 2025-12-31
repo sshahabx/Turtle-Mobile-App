@@ -165,6 +165,7 @@ export const StatusStats = memo(function StatusStats({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing.lg,
+    marginTop: spacing.md,
     marginBottom: spacing.lg,
   },
   sectionTitle: {
