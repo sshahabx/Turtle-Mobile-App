@@ -8,19 +8,11 @@
 import { Stack } from "expo-router";
 import { View, ActivityIndicator, Text, StyleSheet, useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "../hooks/useFonts";
 import { lightColors, darkColors } from "../theme/colors";
 import { ToastProvider } from "../components/ui/Toast";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 2,
-    },
-  },
-});
+import { queryClient } from "../services/queryClient";
 
 /**
  * Loading screen displayed while fonts are loading
@@ -62,7 +54,11 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" />
               <Stack.Screen 
                 name="modals/add-job" 
-                options={{ presentation: 'modal' }} 
+                options={{ 
+                  presentation: 'transparentModal',
+                  animation: 'slide_from_bottom',
+                  contentStyle: { backgroundColor: 'transparent' },
+                }} 
               />
               <Stack.Screen 
                 name="modals/edit-job" 
@@ -108,7 +104,14 @@ export default function RootLayout() {
                 name="modals/goal-setting" 
                 options={{ presentation: 'modal' }} 
               />
-              <Stack.Screen name="job/[id]" />
+              <Stack.Screen 
+                name="job/[id]" 
+                options={{ 
+                  presentation: 'transparentModal',
+                  animation: 'slide_from_bottom',
+                  contentStyle: { backgroundColor: 'transparent' },
+                }} 
+              />
               <Stack.Screen name="note/[id]" />
               <Stack.Screen name="task/[id]" />
               <Stack.Screen name="habit/[id]" />

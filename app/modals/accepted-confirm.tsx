@@ -5,17 +5,22 @@
  * Allows replacing the existing accepted job.
  * 
  * Requirements:
- * - 5.4: Display confirmation dialog when accepting second job
+ * - 4.3: On confirm, update existing job to OFFERED status
+ * - 4.4: Navigate to offer-details modal for the new job
+ * - 4.5: On cancel, do not change any job status
  */
 
-import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useJob } from '../../features/jobs/hooks/useJob';
+import { useJobs } from '../../features/jobs/hooks/useJobs';
 import { useTheme } from '../../hooks/useTheme';
+import { useHaptics } from '../../hooks';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { JobStatus } from '../../types';
 import { fontFamily, fontSize, spacing } from '../../theme';
 
 export default function AcceptedConfirmModal() {
@@ -25,6 +30,9 @@ export default function AcceptedConfirmModal() {
     existingJobId: string;
   }>();
   const { colors, isDark } = useTheme();
+  const { updateJob } = useJobs();
+  const { success, error: hapticError } = useHaptics();
+  const [isReplacing, setIsReplacing] = useState(false);
   
   const { job: newJob, isLoading: isLoadingNew } = useJob(jobId);
   const { job: existingJob, isLoading: isLoadingExisting } = useJob(existingJobId);
@@ -33,11 +41,30 @@ export default function AcceptedConfirmModal() {
     router.back();
   };
 
-  const handleReplace = () => {
-    router.replace({
-      pathname: '/modals/offer-details-replace',
-      params: { jobId, existingJobId },
-    });
+  const handleReplace = async () => {
+    if (!jobId || !existingJobId || !newJob) return;
+    
+    setIsReplacing(true);
+    try {
+      // Requirement 4.3: Update existing accepted job to OFFERED status
+      await updateJob({ id: existingJobId, status: JobStatus.OFFERED });
+      await success();
+      
+      // Requirement 4.4: Navigate to offer-details modal for the new job
+      router.replace({
+        pathname: '/modals/offer-details',
+        params: { 
+          id: jobId,
+          jobTitle: newJob.title,
+          companyName: newJob.company,
+          targetStatus: JobStatus.ACCEPTED,
+        },
+      });
+    } catch (error) {
+      await hapticError();
+      Alert.alert('Error', 'Failed to update job status. Please try again.');
+      setIsReplacing(false);
+    }
   };
 
   if (isLoadingNew || isLoadingExisting) {
@@ -92,10 +119,10 @@ export default function AcceptedConfirmModal() {
 
         <View style={styles.buttonRow}>
           <View style={styles.buttonWrapper}>
-            <Button variant="outline" onPress={handleCancel}>Keep Current</Button>
+            <Button variant="outline" onPress={handleCancel} disabled={isReplacing}>Keep Current</Button>
           </View>
           <View style={styles.buttonWrapper}>
-            <Button onPress={handleReplace}>Replace Offer</Button>
+            <Button onPress={handleReplace} loading={isReplacing}>Replace Offer</Button>
           </View>
         </View>
       </View>

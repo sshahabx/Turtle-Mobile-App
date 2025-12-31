@@ -1,10 +1,11 @@
 /**
  * Job Detail Screen
+ * 
+ * Displays as a bottom sheet taking 70% of screen height.
  */
 
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Alert, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, ScrollView, Alert, ActivityIndicator, TouchableOpacity, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useJob } from '../../features/jobs/hooks/useJob';
@@ -16,7 +17,10 @@ import { StatusBadge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { JobStatus } from '../../types';
 import { formatDate } from '../../utils/date';
-import { fontFamily, fontSize, spacing, layoutSpacing } from '../../theme';
+import { fontFamily, fontSize, spacing, statusColors } from '../../theme';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7; // 70% of screen height
 
 export default function JobDetailScreen() {
   const router = useRouter();
@@ -27,6 +31,10 @@ export default function JobDetailScreen() {
   const { colors } = useTheme();
   const { showToast } = useToast();
   const [updatingStatus, setUpdatingStatus] = useState<JobStatus | null>(null);
+
+  const handleClose = () => {
+    router.back();
+  };
 
   const handleStatusChange = async (status: JobStatus) => {
     if (!id || updatingStatus) return;
@@ -72,146 +80,174 @@ export default function JobDetailScreen() {
     ]);
   };
 
+  const getStatusColor = (status: JobStatus) => {
+    const statusKey = status.toLowerCase() as keyof typeof statusColors;
+    return statusColors[statusKey] || colors.primary;
+  };
+
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </SafeAreaView>
+      <View style={styles.overlay}>
+        <Pressable style={styles.backdrop} onPress={handleClose} />
+        <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </View>
+      </View>
     );
   }
 
   if (error || !job) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>Job not found</Text>
-        <View style={styles.goBackButton}>
-          <Button onPress={() => router.back()}>Go Back</Button>
+      <View style={styles.overlay}>
+        <Pressable style={styles.backdrop} onPress={handleClose} />
+        <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
+          <View style={styles.loadingContainer}>
+            <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>Job not found</Text>
+            <View style={styles.goBackButton}>
+              <Button onPress={handleClose}>Go Back</Button>
+            </View>
+          </View>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Header with back button */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          accessibilityLabel="Go back"
-          accessibilityRole="button"
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
-          Job Details
-        </Text>
-        <View style={styles.headerSpacer} />
-      </View>
+    <View style={styles.overlay}>
+      <Pressable style={styles.backdrop} onPress={handleClose} />
+      <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
+        {/* Handle */}
+        <View style={styles.handleContainer}>
+          <View style={[styles.handle, { backgroundColor: colors.border }]} />
+        </View>
 
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.content}>
-          <Text style={[styles.title, { color: colors.text }]}>{job.title}</Text>
-          <Text style={[styles.company, { color: colors.textSecondary }]}>{job.company}</Text>
-          <View style={styles.badgeContainer}>
-            <StatusBadge status={job.status} />
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Job Details</Text>
+        </View>
+
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.content}>
+            {/* Job Title and Company */}
+            <Text style={[styles.title, { color: colors.text }]}>{job.title}</Text>
+            <Text style={[styles.company, { color: colors.textSecondary }]}>{job.company}</Text>
+            <View style={styles.badgeContainer}>
+              <StatusBadge status={job.status} />
+            </View>
+
+            {/* Info Grid */}
+            <View style={styles.infoGrid}>
+              {job.platform && (
+                <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <Ionicons name="globe-outline" size={18} color={colors.textSecondary} />
+                  <Text style={[styles.infoCardLabel, { color: colors.textSecondary }]}>Platform</Text>
+                  <Text style={[styles.infoCardValue, { color: colors.text }]}>{job.platform}</Text>
+                </View>
+              )}
+
+              {job.deadline && (
+                <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+                  <Text style={[styles.infoCardLabel, { color: colors.textSecondary }]}>Deadline</Text>
+                  <Text style={[styles.infoCardValue, { color: colors.text }]}>{formatDate(job.deadline)}</Text>
+                </View>
+              )}
+            </View>
+
+            {job.notes && (
+              <View style={styles.notesSection}>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Notes</Text>
+                <Text style={[styles.notesText, { color: colors.text }]}>{job.notes}</Text>
+              </View>
+            )}
+
+            {/* Status Update */}
+            <View style={styles.statusSection}>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Update Status</Text>
+              <View style={styles.statusButtons}>
+                {Object.values(JobStatus).map((status) => {
+                  const isCurrentStatus = job.status === status;
+                  const isUpdating = updatingStatus === status;
+                  const statusColor = getStatusColor(status);
+                  return (
+                    <TouchableOpacity
+                      key={status}
+                      onPress={() => handleStatusChange(status)}
+                      disabled={isUpdating || updatingStatus !== null}
+                      style={[
+                        styles.statusButton,
+                        { backgroundColor: `${statusColor}15`, borderColor: statusColor },
+                        isCurrentStatus && { backgroundColor: statusColor },
+                        (isUpdating || (updatingStatus !== null && !isCurrentStatus)) && { opacity: 0.6 },
+                      ]}
+                    >
+                      {isUpdating ? (
+                        <ActivityIndicator size="small" color={isCurrentStatus ? '#fff' : statusColor} />
+                      ) : (
+                        <Text style={[
+                          styles.statusButtonText,
+                          { color: statusColor },
+                          isCurrentStatus && { color: '#fff' },
+                        ]}>
+                          {status}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
           </View>
+        </ScrollView>
 
-          {job.platform && (
-            <View style={styles.infoSection}>
-              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Platform</Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>{job.platform}</Text>
-            </View>
-          )}
-
-          {job.deadline && (
-            <View style={styles.infoSection}>
-              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Deadline</Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>{formatDate(job.deadline)}</Text>
-            </View>
-          )}
-
-          {job.notes && (
-            <View style={styles.infoSection}>
-              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Notes</Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>{job.notes}</Text>
-            </View>
-          )}
-
-          <View style={styles.statusSection}>
-            <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>Update Status</Text>
-            <View style={styles.statusButtons}>
-              {Object.values(JobStatus).map((status) => {
-                const isCurrentStatus = job.status === status;
-                const isUpdating = updatingStatus === status;
-                return (
-                  <TouchableOpacity
-                    key={status}
-                    onPress={() => handleStatusChange(status)}
-                    disabled={isUpdating || updatingStatus !== null}
-                    style={[
-                      styles.statusButton,
-                      { backgroundColor: colors.backgroundTertiary },
-                      isCurrentStatus && { backgroundColor: colors.primary },
-                      (isUpdating || (updatingStatus !== null && !isCurrentStatus)) && { opacity: 0.6 },
-                    ]}
-                  >
-                    {isUpdating ? (
-                      <ActivityIndicator size="small" color={colors.textInverse} />
-                    ) : (
-                      <Text style={[
-                        styles.statusButtonText,
-                        { color: colors.text },
-                        isCurrentStatus && { color: colors.textInverse },
-                      ]}>
-                        {status}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+        {/* Footer */}
+        <View style={[styles.footer, { borderTopColor: colors.border }]}>
+          <View style={styles.buttonWrapper}>
+            <Button variant="outline" onPress={handleEdit}>Edit</Button>
+          </View>
+          <View style={styles.buttonWrapper}>
+            <Button variant="destructive" onPress={handleDelete} loading={isDeleting}>Delete</Button>
           </View>
         </View>
-      </ScrollView>
-
-      <View style={[styles.footer, { borderTopColor: colors.border }]}>
-        <View style={styles.buttonWrapper}>
-          <Button variant="outline" onPress={handleEdit}>Edit</Button>
-        </View>
-        <View style={styles.buttonWrapper}>
-          <Button variant="destructive" onPress={handleDelete} loading={isDeleting}>Delete</Button>
-        </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  container: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+  },
+  handleContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: layoutSpacing.headerHeight,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
   },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   headerTitle: {
-    flex: 1,
-    fontFamily: fontFamily.semibold,
-    fontSize: fontSize.lg,
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xl,
     textAlign: 'center',
-  },
-  headerSpacer: {
-    width: 44,
   },
   loadingContainer: {
     flex: 1,
@@ -242,26 +278,47 @@ const styles = StyleSheet.create({
   },
   badgeContainer: {
     marginTop: spacing.md,
+    alignSelf: 'flex-start',
   },
-  infoSection: {
+  infoGrid: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     marginTop: spacing.lg,
   },
-  infoLabel: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.sm,
+  infoCard: {
+    flex: 1,
+    padding: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
   },
-  infoValue: {
-    fontFamily: fontFamily.medium,
-    fontSize: fontSize.base,
+  infoCardLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.xs,
     marginTop: spacing.xs,
   },
-  statusSection: {
-    marginTop: spacing.xl,
+  infoCardValue: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.sm,
+    marginTop: 2,
   },
-  statusLabel: {
+  notesSection: {
+    marginTop: spacing.lg,
+  },
+  sectionLabel: {
     fontFamily: fontFamily.medium,
     fontSize: fontSize.sm,
     marginBottom: spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  notesText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    lineHeight: 22,
+  },
+  statusSection: {
+    marginTop: spacing.lg,
   },
   statusButtons: {
     flexDirection: 'row',
@@ -272,10 +329,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: 8,
+    borderWidth: 1,
   },
   statusButtonText: {
     fontFamily: fontFamily.medium,
-    fontSize: fontSize.sm,
+    fontSize: fontSize.xs,
   },
   footer: {
     padding: spacing.lg,

@@ -4,19 +4,30 @@
  * Form for entering offer details when accepting a job.
  * 
  * Requirements:
+ * - 5.1: Display job title and company as editable fields pre-populated from the job
+ * - 5.2: Include Currency_Selector and Salary_Range_Selector for salary input
  * - 5.3: Form for salary, benefits, accepted date
+ * - 5.5: Parse and pre-select currency from stored salary string
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Input } from '../ui/Input';
 import { TextArea } from '../ui/TextArea';
 import { Button } from '../ui/Button';
 import { DatePicker } from '../ui/DatePicker';
+import { SalarySelector } from './SalarySelector';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing } from '../../theme';
+import {
+  Currency,
+  parseSalaryString,
+  formatSalary,
+} from '../../features/jobs/utils/salaryUtils';
 
 export interface OfferDetailsData {
+  offerTitle: string;
+  offerCompany: string;
   offerSalary: string;
   offerBenefits: string;
   offerAcceptedDate: Date;
@@ -28,6 +39,8 @@ export interface OfferDetailsFormProps {
   isLoading?: boolean;
   jobTitle?: string;
   companyName?: string;
+  /** Existing salary string for pre-population (Requirements: 5.5) */
+  existingSalary?: string;
 }
 
 export function OfferDetailsForm({
@@ -36,15 +49,56 @@ export function OfferDetailsForm({
   isLoading = false,
   jobTitle,
   companyName,
+  existingSalary,
 }: OfferDetailsFormProps) {
-  const [salary, setSalary] = useState('');
+  // Editable job title and company fields (Requirements: 5.1)
+  const [offerTitle, setOfferTitle] = useState(jobTitle || '');
+  const [offerCompany, setOfferCompany] = useState(companyName || '');
+  
+  // Currency and salary range state (Requirements: 5.2, 5.5)
+  const [currency, setCurrency] = useState<Currency | null>(null);
+  const [salaryRange, setSalaryRange] = useState<string | null>(null);
+  
   const [benefits, setBenefits] = useState('');
   const [acceptedDate, setAcceptedDate] = useState<Date>(new Date());
   const { colors, isDark } = useTheme();
 
+  // Initialize currency and salary range from existing salary string (Requirements: 5.5)
+  useEffect(() => {
+    if (existingSalary) {
+      const parsed = parseSalaryString(existingSalary);
+      if (parsed.currency) {
+        setCurrency(parsed.currency);
+      }
+      if (parsed.range) {
+        setSalaryRange(parsed.range);
+      }
+    }
+  }, [existingSalary]);
+
+  // Update title and company when props change
+  useEffect(() => {
+    if (jobTitle) {
+      setOfferTitle(jobTitle);
+    }
+  }, [jobTitle]);
+
+  useEffect(() => {
+    if (companyName) {
+      setOfferCompany(companyName);
+    }
+  }, [companyName]);
+
   const handleSubmit = () => {
+    // Format salary from currency and range selection (Requirements: 2.6)
+    const formattedSalary = currency && salaryRange 
+      ? formatSalary(currency, salaryRange) 
+      : '';
+
     onSubmit({
-      offerSalary: salary.trim(),
+      offerTitle: offerTitle.trim(),
+      offerCompany: offerCompany.trim(),
+      offerSalary: formattedSalary,
       offerBenefits: benefits.trim(),
       offerAcceptedDate: acceptedDate,
     });
@@ -65,21 +119,39 @@ export function OfferDetailsForm({
           <Text style={[styles.congratsTitle, { color: isDark ? '#86efac' : '#166534' }]}>
             Congratulations!
           </Text>
-          {jobTitle && companyName && (
+          {offerTitle && offerCompany && (
             <Text style={[styles.congratsSubtitle, { color: isDark ? '#4ade80' : '#15803d' }]}>
-              You're accepting the offer for {jobTitle} at {companyName}
+              You're accepting the offer for {offerTitle} at {offerCompany}
             </Text>
           )}
         </View>
 
-        {/* Salary */}
+        {/* Job Title - Editable field pre-populated from props (Requirements: 5.1) */}
         <Input
+          label="Job Title"
+          placeholder="e.g., Software Engineer"
+          value={offerTitle}
+          onChangeText={setOfferTitle}
+          autoCapitalize="words"
+        />
+
+        {/* Company Name - Editable field pre-populated from props (Requirements: 5.1) */}
+        <Input
+          label="Company"
+          placeholder="e.g., Acme Corp"
+          value={offerCompany}
+          onChangeText={setOfferCompany}
+          autoCapitalize="words"
+        />
+
+        {/* Salary - Currency and Range Selectors (Requirements: 5.2) */}
+        <SalarySelector
           label="Salary"
-          placeholder="e.g., $120,000/year"
-          value={salary}
-          onChangeText={setSalary}
-          keyboardType="default"
-          autoCapitalize="none"
+          currency={currency}
+          salaryRange={salaryRange}
+          onCurrencyChange={setCurrency}
+          onSalaryRangeChange={setSalaryRange}
+          testID="offer-salary"
         />
 
         {/* Benefits */}

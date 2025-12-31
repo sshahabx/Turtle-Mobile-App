@@ -3,10 +3,12 @@
  * 
  * Form for creating and editing job applications with validation.
  * Uses centralized theme system for consistent styling.
+ * Uses 2-column grid layout for compact form display.
  * 
  * Requirements:
  * - 1.3: Apply Outfit font throughout
  * - 4.5: Apply consistent input styling
+ * - 1.1, 1.2, 1.3, 1.4: Platform selection dropdown with custom platform support
  */
 
 import React, { useState, useEffect } from 'react';
@@ -23,16 +25,18 @@ import { Input } from '../ui/Input';
 import { TextArea } from '../ui/TextArea';
 import { Button } from '../ui/Button';
 import { DatePicker } from '../ui/DatePicker';
+import { PlatformSelector } from './PlatformSelector';
+import { getPlatformSelection, getFinalPlatformValue } from '../../features/jobs/utils/platformUtils';
 import { useTheme } from '../../hooks/useTheme';
-import { fontFamily, fontSize, spacing, borderRadius } from '../../theme';
+import { fontFamily, fontSize, spacing, borderRadius, statusColors } from '../../theme';
 
-const STATUS_OPTIONS: { value: JobStatus; label: string }[] = [
-  { value: JobStatus.PENDING, label: 'Pending' },
-  { value: JobStatus.APPLIED, label: 'Applied' },
-  { value: JobStatus.INTERVIEWING, label: 'Interviewing' },
-  { value: JobStatus.OFFERED, label: 'Offered' },
-  { value: JobStatus.ACCEPTED, label: 'Accepted' },
-  { value: JobStatus.REJECTED, label: 'Rejected' },
+const STATUS_OPTIONS: { value: JobStatus; label: string; color: string }[] = [
+  { value: JobStatus.PENDING, label: 'Pending', color: statusColors.pending },
+  { value: JobStatus.APPLIED, label: 'Applied', color: statusColors.applied },
+  { value: JobStatus.INTERVIEWING, label: 'Interviewing', color: statusColors.interviewing },
+  { value: JobStatus.OFFERED, label: 'Offered', color: statusColors.offered },
+  { value: JobStatus.ACCEPTED, label: 'Accepted', color: statusColors.accepted },
+  { value: JobStatus.REJECTED, label: 'Rejected', color: statusColors.rejected },
 ];
 
 export interface JobFormData {
@@ -40,6 +44,7 @@ export interface JobFormData {
   company: string;
   status: JobStatus;
   platform: string;
+  customPlatform: string;
   deadline: Date | null;
   notes: string;
 }
@@ -60,11 +65,16 @@ export function JobForm({
   submitLabel = 'Save',
 }: JobFormProps) {
   const { colors } = useTheme();
+  
+  // Initialize platform selection from existing job data
+  const initialPlatformSelection = getPlatformSelection(initialValues?.platform ?? '');
+  
   const [formData, setFormData] = useState<JobFormData>({
     title: initialValues?.title ?? '',
     company: initialValues?.company ?? '',
     status: initialValues?.status ?? JobStatus.PENDING,
-    platform: initialValues?.platform ?? '',
+    platform: initialPlatformSelection.selected,
+    customPlatform: initialPlatformSelection.custom,
     deadline: initialValues?.deadline ?? null,
     notes: initialValues?.notes ?? '',
   });
@@ -74,11 +84,13 @@ export function JobForm({
 
   useEffect(() => {
     if (initialValues) {
+      const platformSelection = getPlatformSelection(initialValues.platform ?? '');
       setFormData({
         title: initialValues.title ?? '',
         company: initialValues.company ?? '',
         status: initialValues.status ?? JobStatus.PENDING,
-        platform: initialValues.platform ?? '',
+        platform: platformSelection.selected,
+        customPlatform: platformSelection.custom,
         deadline: initialValues.deadline ?? null,
         notes: initialValues.notes ?? '',
       });
@@ -111,11 +123,14 @@ export function JobForm({
       return;
     }
 
+    // Get the final platform value based on selection
+    const finalPlatform = getFinalPlatformValue(formData.platform, formData.customPlatform);
+
     const submitData: JobCreateInput = {
       title: formData.title.trim(),
       company: formData.company.trim(),
       status: formData.status,
-      platform: formData.platform.trim() || undefined,
+      platform: finalPlatform || undefined,
       deadline: formData.deadline || undefined,
       notes: formData.notes.trim() || undefined,
     };
@@ -130,77 +145,94 @@ export function JobForm({
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.formContainer}>
-        <Input
-          label="Job Title *"
-          placeholder="e.g., Software Engineer"
-          value={formData.title}
-          onChangeText={(text) => handleChange('title', text)}
-          error={errors.title}
-          autoCapitalize="words"
-          returnKeyType="next"
-        />
-
-        <Input
-          label="Company *"
-          placeholder="e.g., Google"
-          value={formData.company}
-          onChangeText={(text) => handleChange('company', text)}
-          error={errors.company}
-          autoCapitalize="words"
-          returnKeyType="next"
-        />
-
-        <View style={styles.fieldContainer}>
-          <Text style={[styles.label, { color: colors.text }]}>Status</Text>
-          <TouchableOpacity
-            onPress={() => setShowStatusPicker(!showStatusPicker)}
-            style={[styles.selectButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <Text style={[styles.selectText, { color: colors.text }]}>
-              {STATUS_OPTIONS.find((s) => s.value === formData.status)?.label}
-            </Text>
-            <Text style={[styles.selectArrow, { color: colors.textTertiary }]}>▼</Text>
-          </TouchableOpacity>
-          
-          {showStatusPicker && (
-            <View style={[styles.optionsList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              {STATUS_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  onPress={() => {
-                    handleChange('status', option.value);
-                    setShowStatusPicker(false);
-                  }}
-                  style={[
-                    styles.optionItem,
-                    { borderBottomColor: colors.border },
-                    formData.status === option.value && { backgroundColor: colors.backgroundSecondary },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      { color: colors.text },
-                      formData.status === option.value && { color: colors.primary },
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+        {/* Row 1: Job Title and Company */}
+        <View style={styles.row}>
+          <View style={styles.halfColumn}>
+            <Input
+              label="Job Title *"
+              placeholder="e.g., Software Engineer"
+              value={formData.title}
+              onChangeText={(text) => handleChange('title', text)}
+              error={errors.title}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </View>
+          <View style={styles.halfColumn}>
+            <Input
+              label="Company *"
+              placeholder="e.g., Google"
+              value={formData.company}
+              onChangeText={(text) => handleChange('company', text)}
+              error={errors.company}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </View>
         </View>
 
-        <Input
-          label="Platform"
-          placeholder="e.g., LinkedIn, Indeed"
-          value={formData.platform}
-          onChangeText={(text) => handleChange('platform', text)}
-          autoCapitalize="words"
-          returnKeyType="next"
-        />
+        {/* Row 2: Status and Platform */}
+        <View style={styles.row}>
+          <View style={styles.halfColumn}>
+            <View style={styles.fieldContainer}>
+              <Text style={[styles.label, { color: colors.text }]}>Status</Text>
+              <TouchableOpacity
+                onPress={() => setShowStatusPicker(!showStatusPicker)}
+                style={[styles.selectButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <View style={styles.statusDisplay}>
+                  <View style={[styles.statusDot, { backgroundColor: STATUS_OPTIONS.find((s) => s.value === formData.status)?.color }]} />
+                  <Text style={[styles.selectText, { color: colors.text }]}>
+                    {STATUS_OPTIONS.find((s) => s.value === formData.status)?.label}
+                  </Text>
+                </View>
+                <Text style={[styles.selectArrow, { color: colors.textTertiary }]}>▼</Text>
+              </TouchableOpacity>
+              
+              {showStatusPicker && (
+                <View style={[styles.optionsList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  {STATUS_OPTIONS.map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      onPress={() => {
+                        handleChange('status', option.value);
+                        setShowStatusPicker(false);
+                      }}
+                      style={[
+                        styles.optionItem,
+                        { borderBottomColor: colors.border },
+                        formData.status === option.value && { backgroundColor: colors.backgroundSecondary },
+                      ]}
+                    >
+                      <View style={styles.statusDisplay}>
+                        <View style={[styles.statusDot, { backgroundColor: option.color }]} />
+                        <Text
+                          style={[
+                            styles.optionText,
+                            { color: colors.text },
+                            formData.status === option.value && { color: colors.primary },
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+          <View style={styles.halfColumn}>
+            <PlatformSelector
+              value={formData.platform}
+              customPlatform={formData.customPlatform}
+              onPlatformChange={(platform) => handleChange('platform', platform)}
+              onCustomPlatformChange={(custom) => handleChange('customPlatform', custom)}
+            />
+          </View>
+        </View>
 
+        {/* Row 3: Deadline (full width) */}
         <DatePicker
           label="Deadline"
           value={formData.deadline}
@@ -209,12 +241,13 @@ export function JobForm({
           minimumDate={new Date()}
         />
 
+        {/* Row 4: Notes (full width) */}
         <TextArea
           label="Notes"
           placeholder="Add any notes about this application..."
           value={formData.notes}
           onChangeText={(text) => handleChange('notes', text)}
-          rows={4}
+          rows={3}
         />
 
         <View style={styles.buttonRow}>
@@ -248,6 +281,14 @@ const styles = StyleSheet.create({
   formContainer: {
     padding: spacing.lg,
   },
+  row: {
+    flexDirection: 'row',
+    marginHorizontal: -spacing.xs,
+  },
+  halfColumn: {
+    flex: 1,
+    paddingHorizontal: spacing.xs,
+  },
   fieldContainer: {
     marginBottom: spacing.lg,
   },
@@ -257,7 +298,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs + 2,
   },
   selectButton: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderWidth: 1,
     borderRadius: borderRadius.md,
@@ -265,21 +306,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  statusDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: spacing.sm,
+  },
   selectText: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.base,
   },
   selectArrow: {
     fontFamily: fontFamily.regular,
+    fontSize: fontSize.xs,
   },
   optionsList: {
     marginTop: spacing.sm,
     borderWidth: 1,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    zIndex: 1000,
   },
   optionItem: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
   },

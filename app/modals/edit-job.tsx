@@ -3,6 +3,11 @@
  * 
  * Modal for editing an existing job application.
  * Uses centralized theme system for consistent styling.
+ * 
+ * Requirements:
+ * - 3.1: Navigate to offer details when status changes to OFFERED
+ * - 4.1: Navigate to offer details when status changes to ACCEPTED (no existing accepted job)
+ * - 4.2: Navigate to accepted confirmation when status changes to ACCEPTED (existing accepted job)
  */
 
 import React from 'react';
@@ -13,20 +18,78 @@ import { useJob } from '../../features/jobs/hooks/useJob';
 import { useJobs } from '../../features/jobs/hooks/useJobs';
 import { useHaptics } from '../../hooks';
 import { JobForm } from '../../components/jobs/JobForm';
-import { JobCreateInput } from '../../types';
+import { JobCreateInput, JobStatus } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing } from '../../theme';
+import { determineStatusWorkflow, requiresWorkflowHandling } from '../../features/jobs/utils/statusWorkflow';
 
 export default function EditJobModal() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { job, isLoading: isLoadingJob } = useJob(id);
-  const { updateJob, isUpdating } = useJobs();
+  const { jobs, updateJob, isUpdating } = useJobs();
   const { success, error: hapticError } = useHaptics();
   const { colors } = useTheme();
 
   const handleSubmit = async (data: JobCreateInput) => {
-    if (!id) return;
+    if (!id || !job) return;
+    
+    const newStatus = data.status ?? job.status;
+    const currentStatus = job.status;
+    
+    // Check if status change requires workflow handling
+    if (newStatus !== currentStatus && requiresWorkflowHandling(newStatus)) {
+      const workflow = determineStatusWorkflow(newStatus, currentStatus, jobs, id);
+      
+      if (workflow.shouldNavigateToAcceptedConfirm && workflow.existingAcceptedJobId) {
+        // Navigate to accepted confirmation modal
+        // First update the job with non-status changes, then navigate
+        try {
+          const { status, ...nonStatusData } = data;
+          if (Object.keys(nonStatusData).length > 0) {
+            await updateJob({ id, ...nonStatusData });
+          }
+          router.replace({
+            pathname: '/modals/accepted-confirm',
+            params: { 
+              jobId: id, 
+              existingJobId: workflow.existingAcceptedJobId 
+            },
+          });
+          return;
+        } catch (error) {
+          await hapticError();
+          Alert.alert('Error', 'Failed to update job application.');
+          return;
+        }
+      }
+      
+      if (workflow.shouldNavigateToOfferDetails) {
+        // Navigate to offer details modal with job data
+        try {
+          const { status, ...nonStatusData } = data;
+          if (Object.keys(nonStatusData).length > 0) {
+            await updateJob({ id, ...nonStatusData });
+          }
+          router.replace({
+            pathname: '/modals/offer-details',
+            params: { 
+              id,
+              jobTitle: data.title || job.title,
+              companyName: data.company || job.company,
+              targetStatus: newStatus,
+            },
+          });
+          return;
+        } catch (error) {
+          await hapticError();
+          Alert.alert('Error', 'Failed to update job application.');
+          return;
+        }
+      }
+    }
+    
+    // Standard update without workflow
     try {
       await updateJob({ id, ...data });
       await success();

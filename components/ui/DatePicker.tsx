@@ -14,6 +14,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { formatDate } from '../../utils/date';
 import { useTheme } from '../../hooks/useTheme';
 import { Button } from './Button';
@@ -103,7 +104,7 @@ export function DatePicker({
           <Text style={value ? [styles.inputText, { color: colors.text }] : [styles.placeholderText, { color: colors.textTertiary }]}>
             {value ? formatDate(value) : placeholder}
           </Text>
-          <Text style={[styles.calendarIcon, { color: colors.textTertiary }]}>📅</Text>
+          <Ionicons name="calendar-outline" size={20} color={colors.textTertiary} />
         </TouchableOpacity>
         
         {clearable && value && (
@@ -111,7 +112,7 @@ export function DatePicker({
             onPress={() => onChange(null)}
             style={[styles.clearButton, { backgroundColor: colors.backgroundTertiary }]}
           >
-            <Text style={[styles.clearIcon, { color: colors.textSecondary }]}>✕</Text>
+            <Ionicons name="close" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -251,14 +252,14 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.base,
   },
-  calendarIcon: {},
   clearButton: {
     marginLeft: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  clearIcon: {},
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',

@@ -1,5 +1,10 @@
 /**
  * Offer Details Modal Screen
+ * 
+ * Requirements:
+ * - 3.1: Navigate to offer details when status changes to OFFERED
+ * - 3.2: Pre-populate job title and company from the job being updated
+ * - 3.3: Update the job with both the new status and offer details
  */
 
 import React from 'react';
@@ -9,21 +14,39 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useJobs } from '../../features/jobs/hooks/useJobs';
 import { useHaptics } from '../../hooks';
 import { useTheme } from '../../hooks/useTheme';
-import { OfferDetailsForm } from '../../components/jobs/OfferDetailsForm';
+import { OfferDetailsForm, OfferDetailsData } from '../../components/jobs/OfferDetailsForm';
 import { JobStatus } from '../../types';
 import { fontFamily, fontSize, spacing } from '../../theme';
 
 export default function OfferDetailsModal() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, jobTitle, companyName, targetStatus } = useLocalSearchParams<{ 
+    id: string;
+    jobTitle?: string;
+    companyName?: string;
+    targetStatus?: string;
+  }>();
   const { updateJob, isUpdating } = useJobs();
   const { success, error: hapticError } = useHaptics();
   const { colors } = useTheme();
 
-  const handleSubmit = async (data: { offerSalary?: string; offerBenefits?: string; offerAcceptedDate?: Date }) => {
+  // Determine the status to set - default to ACCEPTED if not specified
+  const statusToSet = targetStatus === JobStatus.OFFERED 
+    ? JobStatus.OFFERED 
+    : JobStatus.ACCEPTED;
+
+  const handleSubmit = async (data: OfferDetailsData) => {
     if (!id) return;
     try {
-      await updateJob({ id, status: JobStatus.ACCEPTED, ...data });
+      await updateJob({ 
+        id, 
+        status: statusToSet,
+        offerTitle: data.offerTitle,
+        offerCompany: data.offerCompany,
+        offerSalary: data.offerSalary,
+        offerBenefits: data.offerBenefits,
+        offerAcceptedDate: data.offerAcceptedDate,
+      });
       await success();
       router.back();
     } catch (error) {
@@ -45,6 +68,8 @@ export default function OfferDetailsModal() {
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         isLoading={isUpdating}
+        jobTitle={jobTitle}
+        companyName={companyName}
       />
     </SafeAreaView>
   );
