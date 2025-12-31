@@ -28,3 +28,6 @@ export type {
   HapticFeedbackType, 
   UseHapticsReturn 
 } from './useHaptics';
+
+export { useLimits } from './useLimits';
+export type { UseLimitsReturn } from './useLimits';

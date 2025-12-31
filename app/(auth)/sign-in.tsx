@@ -1,15 +1,16 @@
 /**
  * Sign In Screen
  * 
- * Authentication screen with Google OAuth.
- * Supports dark mode and uses emerald theme.
- * Users can also continue without signing in (offline mode).
+ * Redesigned authentication screen with a calm, professional aesthetic.
+ * Inspired by Linear, Notion, and Arc design principles.
+ * Focuses on radical simplicity and intentional spacing.
  */
 
 import React, { useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, Image, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing } from '../../theme';
@@ -50,106 +51,83 @@ export default function SignInScreen() {
 
   const isButtonDisabled = isLoading || signingIn !== null;
 
+  // Subtle warm background for light mode, keep dark for dark mode
+  const backgroundColor = isDark ? colors.background : '#fafaf9';
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <View style={styles.content}>
-        {/* Logo */}
-        <View style={styles.logoContainer}>
+        {/* Brand Zone */}
+        <View style={styles.brandZone}>
           <Image
             source={require('../../assets/logo.png')}
             style={styles.logo}
             resizeMode="contain"
           />
+          <Text style={[styles.brandName, { color: colors.text }]}>Turtle</Text>
         </View>
 
-        {/* Title */}
-        <Text style={[styles.title, { color: colors.text }]}>Turtle</Text>
-
-        {/* Subtitle */}
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Track your job applications and land your dream job
-        </Text>
-
-        {/* Features */}
-        <View style={styles.features}>
-          <FeatureItem text="Track all your job applications" colors={colors} isDark={isDark} />
-          <FeatureItem text="Monitor your progress with stats" colors={colors} isDark={isDark} />
-          <FeatureItem text="Manage tasks and habits" colors={colors} isDark={isDark} />
-          <FeatureItem text="Sync across devices" colors={colors} isDark={isDark} />
+        {/* Value Proposition Zone */}
+        <View style={styles.valueZone}>
+          <Text style={[styles.headline, { color: colors.text }]}>
+            Your job search,{'\n'}organized.
+          </Text>
+          <Text style={[styles.subline, { color: colors.textSecondary }]}>
+            Track applications with clarity and calm.
+          </Text>
         </View>
 
-        {/* Google Sign In */}
-        <View style={styles.authButtons}>
+        {/* Action Zone */}
+        <View style={styles.actionZone}>
+          {/* Primary CTA - Google Sign In */}
           <Pressable
             onPress={handleGoogleSignIn}
             disabled={isButtonDisabled}
-            style={[
-              styles.oauthButton,
-              { backgroundColor: colors.surface, borderColor: colors.border },
+            style={({ pressed }) => [
+              styles.primaryButton,
+              { backgroundColor: colors.primary },
+              pressed && styles.buttonPressed,
               isButtonDisabled && styles.buttonDisabled,
             ]}
           >
             {signingIn === 'google' ? (
-              <ActivityIndicator color={colors.text} size="small" />
+              <ActivityIndicator color="#fff" size="small" />
             ) : (
               <>
-                <Text style={styles.googleIcon}>G</Text>
-                <Text style={[styles.oauthButtonText, { color: colors.text }]}>
-                  Continue with Google
-                </Text>
+                <View style={styles.googleIconContainer}>
+                  <Ionicons name="logo-google" size={18} color="#fff" />
+                </View>
+                <Text style={styles.primaryButtonText}>Continue with Google</Text>
               </>
+            )}
+          </Pressable>
+
+          {/* Secondary CTA - Continue without signing in */}
+          <Pressable
+            onPress={handleContinueOffline}
+            disabled={isButtonDisabled}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              pressed && { opacity: 0.7 },
+              isButtonDisabled && styles.buttonDisabled,
+            ]}
+          >
+            {signingIn === 'offline' ? (
+              <ActivityIndicator color={colors.textSecondary} size="small" />
+            ) : (
+              <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
+                Continue without signing in
+              </Text>
             )}
           </Pressable>
         </View>
 
-        {/* Divider */}
-        <View style={styles.divider}>
-          <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-          <Text style={[styles.dividerText, { color: colors.textTertiary }]}>or</Text>
-          <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-        </View>
-
-        {/* Continue Offline Button */}
-        <Pressable
-          onPress={handleContinueOffline}
-          disabled={isButtonDisabled}
-          style={[
-            styles.offlineButton,
-            { backgroundColor: colors.primary },
-            isButtonDisabled && { backgroundColor: colors.primaryLight },
-          ]}
-        >
-          {signingIn === 'offline' ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.offlineButtonText}>Continue without signing in</Text>
-          )}
-        </Pressable>
-
-        {/* Footer */}
-        <Text style={[styles.footer, { color: colors.textTertiary }]}>
-          Sign in to sync your data across devices.{'\n'}
-          Or use offline mode to store data locally.
+        {/* Privacy note - minimal, low emphasis */}
+        <Text style={[styles.privacyNote, { color: colors.textTertiary }]}>
+          Your data stays private and syncs securely.
         </Text>
       </View>
     </SafeAreaView>
-  );
-}
-
-interface FeatureItemProps {
-  text: string;
-  colors: ReturnType<typeof useTheme>['colors'];
-  isDark: boolean;
-}
-
-function FeatureItem({ text, colors, isDark }: FeatureItemProps) {
-  return (
-    <View style={styles.featureItem}>
-      <View style={[styles.featureIcon, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#d1fae5' }]}>
-        <View style={[styles.checkmark, { borderColor: colors.primary }]} />
-      </View>
-      <Text style={[styles.featureText, { color: colors.text }]}>{text}</Text>
-    </View>
   );
 }
 
@@ -161,114 +139,95 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing['3xl'],
+    paddingTop: spacing['4xl'],
+    paddingBottom: spacing['3xl'],
   },
-  logoContainer: {
-    marginBottom: spacing.lg,
+  
+  // Brand Zone
+  brandZone: {
+    alignItems: 'center',
+    marginBottom: spacing['4xl'],
   },
   logo: {
-    width: 80,
-    height: 80,
+    width: 56,
+    height: 56,
+    marginBottom: spacing.lg,
   },
-  title: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize['3xl'],
-    textAlign: 'center',
-    marginBottom: spacing.sm,
+  brandName: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.lg,
+    letterSpacing: 0.5,
   },
-  subtitle: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.base,
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-  },
-  features: {
-    width: '100%',
-    marginBottom: spacing.xl,
-  },
-  featureItem: {
-    flexDirection: 'row',
+  
+  // Value Proposition Zone
+  valueZone: {
     alignItems: 'center',
+    marginBottom: spacing['4xl'],
+  },
+  headline: {
+    fontFamily: fontFamily.bold,
+    fontSize: 28,
+    lineHeight: 34,
+    textAlign: 'center',
+    letterSpacing: -0.5,
     marginBottom: spacing.md,
   },
-  featureIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  checkmark: {
-    width: 10,
-    height: 5,
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
-    transform: [{ rotate: '-45deg' }],
-    marginTop: -2,
-  },
-  featureText: {
+  subline: {
     fontFamily: fontFamily.regular,
-    fontSize: fontSize.sm,
-    flex: 1,
+    fontSize: fontSize.base,
+    textAlign: 'center',
+    lineHeight: 22,
   },
-  authButtons: {
+  
+  // Action Zone
+  actionZone: {
     width: '100%',
-    gap: spacing.md,
+    alignItems: 'center',
+    gap: spacing.lg,
   },
-  oauthButton: {
+  primaryButton: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingVertical: 16,
+    borderRadius: 14,
     gap: spacing.sm,
   },
+  buttonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.99 }],
+  },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
-  googleIcon: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4285F4',
-  },
-  oauthButtonText: {
-    fontFamily: fontFamily.medium,
-    fontSize: fontSize.base,
-  },
-  divider: {
-    flexDirection: 'row',
+  googleIconContainer: {
+    width: 20,
+    height: 20,
     alignItems: 'center',
-    width: '100%',
-    marginVertical: spacing.lg,
+    justifyContent: 'center',
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.sm,
-    marginHorizontal: spacing.md,
-  },
-  offlineButton: {
-    width: '100%',
-    paddingVertical: spacing.lg,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  offlineButtonText: {
+  primaryButtonText: {
     fontFamily: fontFamily.semibold,
-    color: '#fff',
     fontSize: fontSize.base,
+    color: '#fff',
   },
-  footer: {
+  secondaryButton: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  secondaryButtonText: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.sm,
+  },
+  
+  // Privacy Note
+  privacyNote: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.xs,
-    marginTop: spacing.xl,
     textAlign: 'center',
-    lineHeight: 18,
+    marginTop: spacing['3xl'],
+    lineHeight: 16,
   },
 });

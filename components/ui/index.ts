@@ -10,3 +10,5 @@ export { DatePicker, type DatePickerProps } from './DatePicker';
 export { OfflineIndicator, type OfflineIndicatorProps } from './OfflineIndicator';
 export { SearchBar, type SearchBarProps } from './SearchBar';
 export { DropdownSelector, type DropdownSelectorProps, type DropdownOption } from './DropdownSelector';
+export { LimitBanner, type LimitBannerProps } from './LimitBanner';
+export { UpgradePrompt, type UpgradePromptProps } from './UpgradePrompt';

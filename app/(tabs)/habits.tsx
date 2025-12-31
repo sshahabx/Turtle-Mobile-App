@@ -4,6 +4,9 @@
  * Displays user habits with streak tracking and completion.
  * Uses centralized theme system for consistent styling.
  * Features an engaging streak tracker component for user retention.
+ * 
+ * Requirements:
+ * - 4.3: Display LimitBanner for Free tier users showing habits usage
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -17,6 +20,8 @@ import { isCompletedToday } from '../../features/habits/utils/habitUtils';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing, borderRadius } from '../../theme';
 import { StreakTracker } from '../../components/habits/StreakTracker';
+import { LimitBanner } from '../../components/ui/LimitBanner';
+import { UpgradePrompt } from '../../components/ui/UpgradePrompt';
 
 export default function HabitsScreen() {
   const router = useRouter();
@@ -24,6 +29,7 @@ export default function HabitsScreen() {
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   const handleHabitPress = (habit: Habit) => {
     router.push({ pathname: '/habit/[id]', params: { id: habit.id } });
@@ -179,6 +185,15 @@ export default function HabitsScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Limit Banner - Shows usage for Free tier users (Requirement 4.3) */}
+      <View style={styles.limitBannerContainer}>
+        <LimitBanner 
+          entityType="habits"
+          entityLabel="habits"
+          onUpgradePress={() => setShowUpgradePrompt(true)}
+        />
+      </View>
+
       {/* Content */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
@@ -220,6 +235,13 @@ export default function HabitsScreen() {
           }
         />
       )}
+
+      {/* Upgrade Prompt Modal */}
+      <UpgradePrompt
+        visible={showUpgradePrompt}
+        onDismiss={() => setShowUpgradePrompt(false)}
+        entityType="habits"
+      />
     </SafeAreaView>
   );
 }
@@ -248,6 +270,10 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.sm,
+  },
+  limitBannerContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   loadingContainer: {
     flex: 1,

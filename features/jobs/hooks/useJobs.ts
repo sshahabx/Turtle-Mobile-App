@@ -1,40 +1,50 @@
 /**
- * useJobs Hook - Local Database Version
+ * useJobs Hook
  * 
- * Manages job data using local AsyncStorage.
- * No backend API required.
+ * Manages job data with proper separation between:
+ * - Authenticated users: Data from backend API
+ * - Offline users: Data from local AsyncStorage
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Job, JobStatus } from '../../../types';
+import { Job, JobStatus, JobCreateInput, JobUpdateInput } from '../../../types';
 import * as db from '../../../services/database';
+import { jobsService } from '../services/jobsService';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 const JOBS_KEY = ['jobs'];
 
 export const useJobs = () => {
   const queryClient = useQueryClient();
+  const { isAuthenticated, isOfflineMode } = useAuth();
 
-  // Fetch all jobs
+  // Determine if we should use local storage or API
+  const useLocalStorage = !isAuthenticated || isOfflineMode;
+
+  // Fetch all jobs - from API if authenticated, from local storage if offline
   const {
     data: jobs = [],
     isLoading,
     error,
     refetch,
   } = useQuery({
-    queryKey: JOBS_KEY,
-    queryFn: db.getJobs,
+    queryKey: [...JOBS_KEY, useLocalStorage ? 'local' : 'api'],
+    queryFn: async () => {
+      if (useLocalStorage) {
+        return db.getJobs();
+      }
+      return jobsService.getJobs();
+    },
   });
 
   // Create job mutation
   const createMutation = useMutation({
-    mutationFn: (input: {
-      title: string;
-      company: string;
-      status?: JobStatus;
-      platform?: string;
-      deadline?: Date;
-      notes?: string;
-    }) => db.createJob(input),
+    mutationFn: async (input: JobCreateInput) => {
+      if (useLocalStorage) {
+        return db.createJob(input);
+      }
+      return jobsService.createJob(input);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: JOBS_KEY });
     },
@@ -42,10 +52,15 @@ export const useJobs = () => {
 
   // Update job mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...data }: { id: string } & Partial<Job>) => 
-      db.updateJob(id, data),
+    mutationFn: async ({ id, ...data }: { id: string } & JobUpdateInput) => {
+      if (useLocalStorage) {
+        const result = await db.updateJob(id, data);
+        if (!result) throw new Error('Job not found');
+        return result;
+      }
+      return jobsService.updateJob(id, data);
+    },
     onSuccess: (_, variables) => {
-      // Invalidate both the jobs list and the individual job query
       queryClient.invalidateQueries({ queryKey: JOBS_KEY });
       queryClient.invalidateQueries({ queryKey: ['job', variables.id] });
     },
@@ -53,7 +68,14 @@ export const useJobs = () => {
 
   // Delete job mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => db.deleteJob(id),
+    mutationFn: async (id: string) => {
+      if (useLocalStorage) {
+        const success = await db.deleteJob(id);
+        if (!success) throw new Error('Job not found');
+        return;
+      }
+      return jobsService.deleteJob(id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: JOBS_KEY });
     },
@@ -61,10 +83,15 @@ export const useJobs = () => {
 
   // Update status mutation
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: JobStatus }) =>
-      db.updateJob(id, { status }),
+    mutationFn: async ({ id, status }: { id: string; status: JobStatus }) => {
+      if (useLocalStorage) {
+        const result = await db.updateJob(id, { status });
+        if (!result) throw new Error('Job not found');
+        return result;
+      }
+      return jobsService.updateJob(id, { status });
+    },
     onSuccess: (_, variables) => {
-      // Invalidate both the jobs list and the individual job query
       queryClient.invalidateQueries({ queryKey: JOBS_KEY });
       queryClient.invalidateQueries({ queryKey: ['job', variables.id] });
     },

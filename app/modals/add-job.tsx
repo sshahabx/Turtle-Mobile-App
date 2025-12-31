@@ -4,17 +4,23 @@
  * Modal for adding a new job application.
  * Uses centralized theme system for consistent styling.
  * Displays as a bottom sheet taking 70% of screen height.
+ * 
+ * Requirements:
+ * - 1.2: Check limits before showing form
+ * - 1.4: Show UpgradePrompt if at limit
  */
 
 import React from 'react';
-import { View, Text, Alert, StyleSheet, Dimensions, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, Alert, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useJobs } from '../../features/jobs/hooks/useJobs';
 import { useHaptics } from '../../hooks';
+import { useLimits } from '../../hooks/useLimits';
 import { JobForm } from '../../components/jobs/JobForm';
+import { UpgradePrompt } from '../../components/ui/UpgradePrompt';
 import { JobCreateInput } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
-import { fontFamily, fontSize, spacing, borderRadius } from '../../theme';
+import { fontFamily, fontSize, spacing } from '../../theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7; // 70% of screen height
@@ -24,6 +30,7 @@ export default function AddJobModal() {
   const { createJob, isCreating } = useJobs();
   const { success, error: hapticError } = useHaptics();
   const { colors } = useTheme();
+  const { isAtLimit, isLoading: limitsLoading } = useLimits('jobs');
 
   const handleSubmit = async (data: JobCreateInput) => {
     try {
@@ -43,6 +50,26 @@ export default function AddJobModal() {
   const handleCancel = () => {
     router.back();
   };
+
+  const handleUpgradeDismiss = () => {
+    router.back();
+  };
+
+  const handleSignInSuccess = () => {
+    // Stay on the modal after sign-in so user can add the job
+  };
+
+  // Show UpgradePrompt if user is at limit (Requirement 1.2, 1.4)
+  if (!limitsLoading && isAtLimit) {
+    return (
+      <UpgradePrompt
+        visible={true}
+        onDismiss={handleUpgradeDismiss}
+        onSignInSuccess={handleSignInSuccess}
+        entityType="jobs"
+      />
+    );
+  }
 
   return (
     <View style={styles.overlay}>

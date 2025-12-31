@@ -4,6 +4,9 @@
  * Displays user tasks with completion tracking.
  * Uses centralized theme system for consistent styling.
  * Features a mood selector for emotional engagement.
+ * 
+ * Requirements:
+ * - 3.3: Display LimitBanner for Free tier users showing tasks usage
  */
 
 import React, { useState, useCallback } from 'react';
@@ -16,6 +19,8 @@ import { Task, TaskStatus } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing, borderRadius } from '../../theme';
 import { MoodSelector, MoodType } from '../../components/tasks/MoodSelector';
+import { LimitBanner } from '../../components/ui/LimitBanner';
+import { UpgradePrompt } from '../../components/ui/UpgradePrompt';
 
 export default function TasksScreen() {
   const router = useRouter();
@@ -23,6 +28,7 @@ export default function TasksScreen() {
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   const handleMoodSelect = (mood: MoodType) => {
     setSelectedMood(mood);
@@ -101,6 +107,15 @@ export default function TasksScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Limit Banner - Shows usage for Free tier users (Requirement 3.3) */}
+      <View style={styles.limitBannerContainer}>
+        <LimitBanner 
+          entityType="tasks"
+          entityLabel="tasks"
+          onUpgradePress={() => setShowUpgradePrompt(true)}
+        />
+      </View>
+
       {/* Content */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
@@ -134,6 +149,13 @@ export default function TasksScreen() {
           }
         />
       )}
+
+      {/* Upgrade Prompt Modal */}
+      <UpgradePrompt
+        visible={showUpgradePrompt}
+        onDismiss={() => setShowUpgradePrompt(false)}
+        entityType="tasks"
+      />
     </SafeAreaView>
   );
 }
@@ -162,6 +184,10 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.sm,
+  },
+  limitBannerContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   loadingContainer: {
     flex: 1,

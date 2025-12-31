@@ -30,6 +30,8 @@ import { fontFamily, fontSize, spacing, borderRadius, statusColors } from '../..
 import { CollapsibleStatusSection } from '../../components/dashboard/CollapsibleStatusSection';
 import { StatusStats } from '../../components/dashboard/StatusStats';
 import { AcceptedJobBanner } from '../../components/dashboard/AcceptedJobBanner';
+import { LimitBanner } from '../../components/ui/LimitBanner';
+import { UpgradePrompt } from '../../components/ui/UpgradePrompt';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -55,6 +57,9 @@ export default function DashboardScreen() {
     [JobStatus.PENDING]: false,
     [JobStatus.REJECTED]: false,
   });
+  
+  // State for upgrade prompt visibility
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   // Filter jobs based on search query
   const filteredJobs = filterJobsBySearch(jobs, searchQuery);
@@ -236,6 +241,15 @@ export default function DashboardScreen() {
               />
             )}
 
+            {/* Limit Banner - Shows usage for Free tier users (Requirement 1.3) */}
+            <View style={styles.limitBannerContainer}>
+              <LimitBanner 
+                entityType="jobs"
+                entityLabel="jobs"
+                onUpgradePress={() => setShowUpgradePrompt(true)}
+              />
+            </View>
+
             {/* Daily Progress */}
             <View style={[styles.progressContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.progressHeader}>
@@ -382,6 +396,13 @@ export default function DashboardScreen() {
       <TouchableOpacity style={[styles.fab, { backgroundColor: colors.primary }]} onPress={handleAddJob}>
         <Text style={[styles.fabText, { color: colors.textInverse }]}>+</Text>
       </TouchableOpacity>
+
+      {/* Upgrade Prompt Modal */}
+      <UpgradePrompt
+        visible={showUpgradePrompt}
+        onDismiss={() => setShowUpgradePrompt(false)}
+        entityType="jobs"
+      />
     </SafeAreaView>
   );
 }
@@ -458,6 +479,10 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.xl,
     marginBottom: spacing.lg,
     borderWidth: 1,
+  },
+  limitBannerContainer: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
   },
   progressHeader: {
     marginBottom: spacing.md,

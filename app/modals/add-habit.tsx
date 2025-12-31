@@ -3,6 +3,10 @@
  * 
  * Modal for adding a new habit.
  * Displays as a bottom sheet taking 70% of screen height.
+ * 
+ * Requirements:
+ * - 4.2: Check limits before showing form
+ * - 4.4: Show UpgradePrompt if at limit
  */
 
 import React from 'react';
@@ -10,7 +14,9 @@ import { View, Text, Alert, StyleSheet, Dimensions, Pressable } from 'react-nati
 import { useRouter } from 'expo-router';
 import { useHabits } from '../../features/habits/hooks/useHabits';
 import { useHaptics } from '../../hooks';
+import { useLimits } from '../../hooks/useLimits';
 import { HabitForm } from '../../components/habits/HabitForm';
+import { UpgradePrompt } from '../../components/ui/UpgradePrompt';
 import { HabitCreateInput } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing } from '../../theme';
@@ -23,6 +29,7 @@ export default function AddHabitModal() {
   const { createHabit, isCreating } = useHabits();
   const { success, error: hapticError } = useHaptics();
   const { colors } = useTheme();
+  const { isAtLimit, isLoading: limitsLoading } = useLimits('habits');
 
   const handleSubmit = async (data: HabitCreateInput) => {
     try {
@@ -36,6 +43,26 @@ export default function AddHabitModal() {
   };
 
   const handleCancel = () => router.back();
+
+  const handleUpgradeDismiss = () => {
+    router.back();
+  };
+
+  const handleSignInSuccess = () => {
+    // Stay on the modal after sign-in so user can add the habit
+  };
+
+  // Show UpgradePrompt if user is at limit (Requirement 4.2, 4.4)
+  if (!limitsLoading && isAtLimit) {
+    return (
+      <UpgradePrompt
+        visible={true}
+        onDismiss={handleUpgradeDismiss}
+        onSignInSuccess={handleSignInSuccess}
+        entityType="habits"
+      />
+    );
+  }
 
   return (
     <View style={styles.overlay}>

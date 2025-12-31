@@ -3,6 +3,10 @@
  * 
  * Modal for adding a new note.
  * Displays as a bottom sheet taking 70% of screen height.
+ * 
+ * Requirements:
+ * - 2.2: Check limits before showing form
+ * - 2.4: Show UpgradePrompt if at limit
  */
 
 import React from 'react';
@@ -10,7 +14,9 @@ import { View, Text, Alert, StyleSheet, Dimensions, Pressable } from 'react-nati
 import { useRouter } from 'expo-router';
 import { useNotes } from '../../features/notes/hooks/useNotes';
 import { useHaptics } from '../../hooks';
+import { useLimits } from '../../hooks/useLimits';
 import { NoteForm } from '../../components/notes/NoteForm';
+import { UpgradePrompt } from '../../components/ui/UpgradePrompt';
 import { NoteCreateInput } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing } from '../../theme';
@@ -23,6 +29,7 @@ export default function AddNoteModal() {
   const { createNote, isCreating } = useNotes();
   const { success, error: hapticError } = useHaptics();
   const { colors } = useTheme();
+  const { isAtLimit, isLoading: limitsLoading } = useLimits('notes');
 
   const handleSubmit = async (data: NoteCreateInput) => {
     try {
@@ -36,6 +43,26 @@ export default function AddNoteModal() {
   };
 
   const handleCancel = () => router.back();
+
+  const handleUpgradeDismiss = () => {
+    router.back();
+  };
+
+  const handleSignInSuccess = () => {
+    // Stay on the modal after sign-in so user can add the note
+  };
+
+  // Show UpgradePrompt if user is at limit (Requirement 2.2, 2.4)
+  if (!limitsLoading && isAtLimit) {
+    return (
+      <UpgradePrompt
+        visible={true}
+        onDismiss={handleUpgradeDismiss}
+        onSignInSuccess={handleSignInSuccess}
+        entityType="notes"
+      />
+    );
+  }
 
   return (
     <View style={styles.overlay}>

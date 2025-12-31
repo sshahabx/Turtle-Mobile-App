@@ -4,6 +4,9 @@
  * Displays user notes with create/edit functionality.
  * Uses centralized theme system for consistent styling.
  * Features a personal, journal-like header for emotional connection.
+ * 
+ * Requirements:
+ * - 2.3: Display LimitBanner for Free tier users showing notes usage
  */
 
 import React, { useState, useCallback } from 'react';
@@ -16,6 +19,8 @@ import { Note } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing, borderRadius } from '../../theme';
 import { PersonalHeader } from '../../components/notes/PersonalHeader';
+import { LimitBanner } from '../../components/ui/LimitBanner';
+import { UpgradePrompt } from '../../components/ui/UpgradePrompt';
 
 // Pastel colors for note cards to make them feel more personal
 const NOTE_COLORS = [
@@ -32,6 +37,7 @@ export default function NotesScreen() {
   const { notes, isLoading, refetch } = useNotes();
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   const handleNotePress = (note: Note) => {
     router.push({ pathname: '/note/[id]', params: { id: note.id } });
@@ -102,6 +108,15 @@ export default function NotesScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Limit Banner - Shows usage for Free tier users (Requirement 2.3) */}
+      <View style={styles.limitBannerContainer}>
+        <LimitBanner 
+          entityType="notes"
+          entityLabel="notes"
+          onUpgradePress={() => setShowUpgradePrompt(true)}
+        />
+      </View>
+
       {/* Content */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
@@ -139,6 +154,13 @@ export default function NotesScreen() {
           }
         />
       )}
+
+      {/* Upgrade Prompt Modal */}
+      <UpgradePrompt
+        visible={showUpgradePrompt}
+        onDismiss={() => setShowUpgradePrompt(false)}
+        entityType="notes"
+      />
     </SafeAreaView>
   );
 }
@@ -172,6 +194,10 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.sm,
+  },
+  limitBannerContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   loadingContainer: {
     flex: 1,

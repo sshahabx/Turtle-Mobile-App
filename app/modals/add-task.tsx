@@ -3,6 +3,10 @@
  * 
  * Modal for adding a new task.
  * Displays as a bottom sheet taking 70% of screen height.
+ * 
+ * Requirements:
+ * - 3.2: Check limits before showing form
+ * - 3.4: Show UpgradePrompt if at limit
  */
 
 import React from 'react';
@@ -10,7 +14,9 @@ import { View, Text, Alert, StyleSheet, Dimensions, Pressable } from 'react-nati
 import { useRouter } from 'expo-router';
 import { useTasks } from '../../features/tasks/hooks/useTasks';
 import { useHaptics } from '../../hooks';
+import { useLimits } from '../../hooks/useLimits';
 import { TaskForm } from '../../components/tasks/TaskForm';
+import { UpgradePrompt } from '../../components/ui/UpgradePrompt';
 import { TaskCreateInput } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing } from '../../theme';
@@ -23,6 +29,7 @@ export default function AddTaskModal() {
   const { createTask, isCreating } = useTasks();
   const { success, error: hapticError } = useHaptics();
   const { colors } = useTheme();
+  const { isAtLimit, isLoading: limitsLoading } = useLimits('tasks');
 
   const handleSubmit = async (data: TaskCreateInput) => {
     try {
@@ -36,6 +43,26 @@ export default function AddTaskModal() {
   };
 
   const handleCancel = () => router.back();
+
+  const handleUpgradeDismiss = () => {
+    router.back();
+  };
+
+  const handleSignInSuccess = () => {
+    // Stay on the modal after sign-in so user can add the task
+  };
+
+  // Show UpgradePrompt if user is at limit (Requirement 3.2, 3.4)
+  if (!limitsLoading && isAtLimit) {
+    return (
+      <UpgradePrompt
+        visible={true}
+        onDismiss={handleUpgradeDismiss}
+        onSignInSuccess={handleSignInSuccess}
+        entityType="tasks"
+      />
+    );
+  }
 
   return (
     <View style={styles.overlay}>
