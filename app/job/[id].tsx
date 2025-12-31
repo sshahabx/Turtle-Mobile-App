@@ -148,6 +148,107 @@ export default function JobDetailScreen() {
     );
   }
 
+  // Special view for ACCEPTED jobs - show congratulations and offer details
+  if (job.status === JobStatus.ACCEPTED) {
+    const acceptedColor = statusColors.accepted;
+    return (
+      <View style={styles.overlay}>
+        <Pressable style={styles.backdrop} onPress={handleClose} />
+        <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
+          {/* Handle */}
+          <View style={styles.handleContainer}>
+            <View style={[styles.handle, { backgroundColor: colors.border }]} />
+          </View>
+
+          {/* Header */}
+          <View style={[styles.header, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Accepted Offer</Text>
+          </View>
+
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.content}>
+              {/* Congratulations Card */}
+              <View style={[styles.congratsCard, { backgroundColor: `${acceptedColor}15`, borderColor: acceptedColor }]}>
+                <View style={[styles.congratsIconContainer, { backgroundColor: acceptedColor }]}>
+                  <Ionicons name="checkmark" size={32} color="#fff" />
+                </View>
+                <Text style={[styles.congratsTitle, { color: acceptedColor }]}>
+                  Congratulations
+                </Text>
+                <Text style={[styles.congratsSubtitle, { color: colors.textSecondary }]}>
+                  You accepted this offer
+                </Text>
+              </View>
+
+              {/* Job Info */}
+              <View style={styles.acceptedJobInfo}>
+                <Text style={[styles.title, { color: colors.text }]}>{job.title}</Text>
+                <Text style={[styles.company, { color: colors.textSecondary }]}>{job.company}</Text>
+              </View>
+
+              {/* Offer Details */}
+              <View style={styles.offerDetailsSection}>
+                {job.offerSalary && (
+                  <View style={[styles.offerDetailCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Ionicons name="cash-outline" size={20} color={acceptedColor} />
+                    <View style={styles.offerDetailContent}>
+                      <Text style={[styles.offerDetailLabel, { color: colors.textSecondary }]}>Salary</Text>
+                      <Text style={[styles.offerDetailValue, { color: colors.text }]}>{job.offerSalary}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {job.offerBenefits && (
+                  <View style={[styles.offerDetailCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Ionicons name="gift-outline" size={20} color={acceptedColor} />
+                    <View style={styles.offerDetailContent}>
+                      <Text style={[styles.offerDetailLabel, { color: colors.textSecondary }]}>Benefits</Text>
+                      <Text style={[styles.offerDetailValue, { color: colors.text }]}>{job.offerBenefits}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {job.offerAcceptedDate && (
+                  <View style={[styles.offerDetailCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Ionicons name="calendar-outline" size={20} color={acceptedColor} />
+                    <View style={styles.offerDetailContent}>
+                      <Text style={[styles.offerDetailLabel, { color: colors.textSecondary }]}>Accepted Date</Text>
+                      <Text style={[styles.offerDetailValue, { color: colors.text }]}>{formatDate(job.offerAcceptedDate)}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {job.platform && (
+                  <View style={[styles.offerDetailCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Ionicons name="globe-outline" size={20} color={colors.textSecondary} />
+                    <View style={styles.offerDetailContent}>
+                      <Text style={[styles.offerDetailLabel, { color: colors.textSecondary }]}>Platform</Text>
+                      <Text style={[styles.offerDetailValue, { color: colors.text }]}>{job.platform}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              {job.notes && (
+                <View style={styles.notesSection}>
+                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Notes</Text>
+                  <Text style={[styles.notesText, { color: colors.text }]}>{job.notes}</Text>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+
+          {/* Footer */}
+          <View style={[styles.footer, { borderTopColor: colors.border }]}>
+            <View style={styles.buttonWrapper}>
+              <Button variant="outline" onPress={handleClose}>Close</Button>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.overlay}>
       <Pressable style={styles.backdrop} onPress={handleClose} />
@@ -377,5 +478,58 @@ const styles = StyleSheet.create({
   },
   buttonWrapper: {
     flex: 1,
+  },
+  congratsCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: spacing.xl,
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  congratsIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  congratsTitle: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize['2xl'],
+    marginBottom: spacing.xs,
+  },
+  congratsSubtitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+  },
+  acceptedJobInfo: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  offerDetailsSection: {
+    gap: spacing.md,
+  },
+  offerDetailCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: spacing.md,
+  },
+  offerDetailContent: {
+    flex: 1,
+  },
+  offerDetailLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  offerDetailValue: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.base,
   },
 });
