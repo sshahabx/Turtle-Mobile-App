@@ -34,6 +34,7 @@ export default function HabitsScreen() {
     setCompletingId(habitId);
     try {
       await completeHabit(habitId);
+      await refetch();
     } catch (error) {
       Alert.alert('Error', 'Failed to complete habit.');
     } finally {

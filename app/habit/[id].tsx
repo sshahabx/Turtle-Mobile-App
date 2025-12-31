@@ -3,9 +3,10 @@
  */
 
 import React from 'react';
-import { View, Text, ScrollView, Alert, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Alert, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useHabit, useHabits } from '../../features/habits/hooks/useHabits';
 import { useHaptics } from '../../hooks';
 import { useTheme } from '../../hooks/useTheme';
@@ -16,17 +17,22 @@ import { fontFamily, fontSize, spacing } from '../../theme';
 export default function HabitDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { habit, isLoading, error } = useHabit(id);
+  const { habit, isLoading, error, refetch } = useHabit(id);
   const { deleteHabit, completeHabit, isDeleting } = useHabits();
   const { success, error: hapticError } = useHaptics();
   const { colors, isDark } = useTheme();
 
   const completedToday = habit ? isCompletedToday(habit) : false;
 
+  const handleBack = () => {
+    router.back();
+  };
+
   const handleComplete = async () => {
     if (!id || completedToday) return;
     try {
       await completeHabit(id);
+      await refetch();
       await success();
     } catch (err) {
       await hapticError();
@@ -79,6 +85,15 @@ export default function HabitDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      {/* Header with back button */}
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Habit Details</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <Text style={[styles.title, { color: colors.text }]}>{habit.name}</Text>
         {habit.description && (
@@ -129,6 +144,25 @@ export default function HabitDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    padding: spacing.sm,
+  },
+  headerTitle: {
+    flex: 1,
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.lg,
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 40,
   },
   loadingContainer: {
     flex: 1,
