@@ -23,7 +23,7 @@ export default function TaskDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { task, isLoading, error } = useTask(id);
-  const { deleteTask, toggleTask, isDeleting } = useTasks();
+  const { deleteTask, toggleTask, isDeleting, isToggling } = useTasks();
   const { success, error: hapticError } = useHaptics();
   const { colors, isDark } = useTheme();
 
@@ -67,8 +67,9 @@ export default function TaskDetailScreen() {
       await toggleTask(id);
       await success();
     } catch (err) {
+      console.error('Toggle task error:', err);
       await hapticError();
-      Alert.alert('Error', 'Failed to update task.');
+      Alert.alert('Error', 'Failed to update task. Please try again.');
     }
   };
 
@@ -96,13 +97,15 @@ export default function TaskDetailScreen() {
     ]);
   };
 
-  if (isLoading) {
+  // Show loading state when fetching OR when data hasn't arrived yet (no error)
+  if (isLoading || (!task && !error)) {
     return (
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={handleClose} />
         <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading task...</Text>
           </View>
         </View>
       </View>
@@ -176,7 +179,7 @@ export default function TaskDetailScreen() {
         {/* Footer */}
         <View style={[styles.footer, { borderTopColor: colors.border }]}>
           <View style={styles.toggleButtonWrapper}>
-            <Button size="sm" onPress={handleToggle}>
+            <Button size="sm" onPress={handleToggle} loading={isToggling}>
               {isCompleted ? 'Mark as Pending' : 'Mark as Complete'}
             </Button>
           </View>
@@ -235,6 +238,11 @@ const styles = StyleSheet.create({
   notFoundText: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.base,
+  },
+  loadingText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+    marginTop: spacing.md,
   },
   goBackButton: {
     marginTop: spacing.lg,

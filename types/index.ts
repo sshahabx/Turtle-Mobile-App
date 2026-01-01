@@ -142,3 +142,20 @@ export interface User {
   image?: string;
   dailyJobGoal: number;
 }
+
+// ============================================================================
+// Journey Types
+// ============================================================================
+
+export type {
+  VisualTier,
+  JourneyLevel,
+  MilestoneType,
+  MilestoneState,
+  Milestone,
+  PointActionType,
+  PointAction,
+  JourneyState,
+  JourneyStats,
+  MilestoneDefinition,
+} from './journey';

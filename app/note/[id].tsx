@@ -85,13 +85,15 @@ export default function NoteDetailScreen() {
     ]);
   };
 
-  if (isLoading) {
+  // Show loading state when fetching OR when data hasn't arrived yet (no error)
+  if (isLoading || (!note && !error)) {
     return (
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={handleClose} />
         <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading note...</Text>
           </View>
         </View>
       </View>
@@ -196,6 +198,11 @@ const styles = StyleSheet.create({
   notFoundText: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.base,
+  },
+  loadingText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+    marginTop: spacing.md,
   },
   goBackButton: {
     marginTop: spacing.lg,

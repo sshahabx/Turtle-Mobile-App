@@ -266,7 +266,7 @@ export const habitsService = {
    * Marks a habit as completed for today
    */
   async completeHabit(id: string): Promise<Habit> {
-    const response = await api.post<HabitApiResponse>(ENDPOINTS.HABITS.COMPLETE(id));
+    const response = await api.post<HabitApiResponse>(ENDPOINTS.HABITS.COMPLETE(id), {});
     return parseHabitResponse(response);
   },
 };
@@ -295,7 +295,13 @@ export const userService = {
    */
   async getProfile(): Promise<User> {
     const response = await api.get<UserApiResponse>(ENDPOINTS.USER.PROFILE);
-    return response;
+    return {
+      id: response.id,
+      name: response.name ?? undefined,
+      email: response.email ?? undefined,
+      image: response.image ?? undefined,
+      dailyJobGoal: response.dailyJobGoal,
+    };
   },
 
   /**
@@ -304,7 +310,13 @@ export const userService = {
   async updateGoal(goal: number): Promise<User> {
     const data: UpdateGoalInput = { dailyJobGoal: goal };
     const response = await api.put<UserApiResponse>(ENDPOINTS.USER.GOAL, data);
-    return response;
+    return {
+      id: response.id,
+      name: response.name ?? undefined,
+      email: response.email ?? undefined,
+      image: response.image ?? undefined,
+      dailyJobGoal: response.dailyJobGoal,
+    };
   },
 
   /**

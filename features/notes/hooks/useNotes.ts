@@ -4,6 +4,8 @@
  * Manages note data with proper separation between:
  * - Authenticated users: Data from backend API
  * - Offline users: Data from local AsyncStorage
+ * 
+ * Features optimistic updates for instant UI feedback.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -20,6 +22,9 @@ export const useNotes = () => {
 
   // Determine if we should use local storage or API
   const useLocalStorage = !isAuthenticated || isOfflineMode;
+  
+  // Get the current query key
+  const queryKey = [...NOTES_KEY, useLocalStorage ? 'local' : 'api'];
 
   const {
     data: notes = [],
@@ -27,7 +32,7 @@ export const useNotes = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: [...NOTES_KEY, useLocalStorage ? 'local' : 'api'],
+    queryKey,
     queryFn: async () => {
       if (useLocalStorage) {
         return db.getNotes();
@@ -53,7 +58,43 @@ export const useNotes = () => {
       }
       return notesService.updateNote(id, data);
     },
-    onSuccess: (_, variables) => {
+    // Optimistic update
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previousNotes = queryClient.getQueryData<Note[]>(queryKey);
+      
+      if (previousNotes) {
+        queryClient.setQueryData<Note[]>(queryKey, 
+          previousNotes.map(note => 
+            note.id === variables.id 
+              ? { ...note, ...variables, updatedAt: new Date() }
+              : note
+          )
+        );
+      }
+      
+      // Also update the individual note query
+      const previousNote = queryClient.getQueryData<Note>(['note', variables.id, useLocalStorage ? 'local' : 'api']);
+      if (previousNote) {
+        queryClient.setQueryData(['note', variables.id, useLocalStorage ? 'local' : 'api'], {
+          ...previousNote,
+          ...variables,
+          updatedAt: new Date(),
+        });
+      }
+      
+      return { previousNotes, previousNote };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousNotes) {
+        queryClient.setQueryData(queryKey, context.previousNotes);
+      }
+      if (context?.previousNote) {
+        queryClient.setQueryData(['note', variables.id, useLocalStorage ? 'local' : 'api'], context.previousNote);
+      }
+      console.error('Update note error:', err);
+    },
+    onSettled: (_, __, variables) => {
       queryClient.invalidateQueries({ queryKey: NOTES_KEY });
       queryClient.invalidateQueries({ queryKey: ['note', variables.id] });
     },
@@ -66,7 +107,28 @@ export const useNotes = () => {
       }
       return notesService.deleteNote(id);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: NOTES_KEY }),
+    // Optimistic update
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previousNotes = queryClient.getQueryData<Note[]>(queryKey);
+      
+      if (previousNotes) {
+        queryClient.setQueryData<Note[]>(queryKey, 
+          previousNotes.filter(note => note.id !== id)
+        );
+      }
+      
+      return { previousNotes };
+    },
+    onError: (err, id, context) => {
+      if (context?.previousNotes) {
+        queryClient.setQueryData(queryKey, context.previousNotes);
+      }
+      console.error('Delete note error:', err);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: NOTES_KEY });
+    },
   });
 
   return {

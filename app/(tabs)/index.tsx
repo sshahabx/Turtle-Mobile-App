@@ -5,6 +5,7 @@
  * Uses centralized theme system for consistent styling.
  * 
  * Features:
+ * - Profile icon that opens a sidebar with Journey and Profile options
  * - Search bar for filtering jobs by title, company, or notes
  * - Collapsible status sections for organized job viewing
  * - Stats cards showing total jobs, today's count, and daily goal
@@ -17,7 +18,7 @@
  */
 
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput, LayoutAnimation, Platform, UIManager, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,10 +32,12 @@ import { fontFamily, fontSize, spacing, borderRadius, statusColors } from '../..
 import { CollapsibleStatusSection } from '../../components/dashboard/CollapsibleStatusSection';
 import { StatusStats } from '../../components/dashboard/StatusStats';
 import { AcceptedJobBanner } from '../../components/dashboard/AcceptedJobBanner';
+import { ProfileSidebar } from '../../components/dashboard/ProfileSidebar';
 import { LimitBanner } from '../../components/ui/LimitBanner';
 import { UpgradePrompt } from '../../components/ui/UpgradePrompt';
 import { NotificationIcon } from '../../components/ui/NotificationIcon';
 import { useNotificationStore } from '../../store/notificationStore';
+import { getStoredUser } from '../../features/auth/services/authService';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -50,7 +53,18 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const [storedUser, setStoredUser] = useState<{ name?: string | null; image?: string | null } | null>(null);
   const searchInputRef = useRef<TextInput>(null);
+  
+  // Load stored user for profile icon
+  React.useEffect(() => {
+    const loadUser = async () => {
+      const userData = await getStoredUser();
+      setStoredUser(userData);
+    };
+    loadUser();
+  }, []);
   
   // Get unread notification count from store (Requirements 1.1, 1.2)
   const unreadCount = useNotificationStore((state) => state.getUnreadCount());
@@ -218,12 +232,23 @@ export default function DashboardScreen() {
             </View>
           </View>
         ) : (
-          // Normal header with search icon and notification icon
+          // Normal header with profile icon, notification icon, and search icon
           <>
-            <View>
-              <Text style={[styles.welcomeText, { color: colors.textSecondary }]}>Welcome back,</Text>
-              <Text style={[styles.titleText, { color: colors.text }]}>{user?.name || 'Job Seeker'}</Text>
-            </View>
+            <TouchableOpacity 
+              onPress={() => setIsSidebarVisible(true)}
+              style={styles.profileButton}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.profileAvatar, { backgroundColor: colors.primary }]}>
+                {storedUser?.image ? (
+                  <Image source={{ uri: storedUser.image }} style={styles.profileAvatarImage} />
+                ) : (
+                  <Text style={styles.profileAvatarText}>
+                    {storedUser?.name?.charAt(0)?.toUpperCase() || user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
             <View style={styles.headerActions}>
               <NotificationIcon
                 unreadCount={unreadCount}
@@ -431,6 +456,12 @@ export default function DashboardScreen() {
         onDismiss={() => setShowUpgradePrompt(false)}
         entityType="jobs"
       />
+
+      {/* Profile Sidebar */}
+      <ProfileSidebar
+        visible={isSidebarVisible}
+        onClose={() => setIsSidebarVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -444,17 +475,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    minHeight: 72,
+    minHeight: 64,
   },
-  welcomeText: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.sm,
+  profileButton: {
+    padding: spacing.xs,
   },
-  titleText: {
+  profileAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  profileAvatarImage: {
+    width: 40,
+    height: 40,
+  },
+  profileAvatarText: {
     fontFamily: fontFamily.bold,
-    fontSize: fontSize.xl,
+    fontSize: fontSize.base,
+    color: '#fff',
   },
   headerActions: {
     flexDirection: 'row',

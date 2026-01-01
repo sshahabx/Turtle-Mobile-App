@@ -3,12 +3,14 @@
  */
 
 import React, { memo, useCallback, useMemo } from 'react';
-import { View, RefreshControl, StyleSheet } from 'react-native';
+import { View, RefreshControl, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Task } from '../../types';
 import { sortTasksByStatusAndDueDate } from '../../features/tasks/utils/taskUtils';
 import { TaskCard } from './TaskCard';
 import { EmptyState } from '../dashboard/EmptyState';
+import { useTheme } from '../../hooks/useTheme';
+import { fontFamily, fontSize, spacing } from '../../theme';
 
 export interface TaskListProps {
   tasks: Task[];
@@ -17,6 +19,7 @@ export interface TaskListProps {
   onAddTask?: () => void;
   isRefreshing?: boolean;
   onRefresh?: () => void;
+  isLoading?: boolean;
   emptyTitle?: string;
   emptyMessage?: string;
 }
@@ -31,9 +34,11 @@ export const TaskList = memo(function TaskList({
   onAddTask,
   isRefreshing = false,
   onRefresh,
+  isLoading = false,
   emptyTitle = 'No tasks yet',
   emptyMessage = 'Stay organized by adding your first task.',
 }: TaskListProps) {
+  const { colors } = useTheme();
   const sortedTasks = useMemo(() => sortTasksByStatusAndDueDate(tasks), [tasks]);
 
   const renderItem = useCallback(({ item }: { item: Task }) => (
@@ -45,6 +50,16 @@ export const TaskList = memo(function TaskList({
   ), [onTaskPress, onToggleStatus]);
 
   const keyExtractor = useCallback((item: Task) => item.id, []);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading tasks...</Text>
+      </View>
+    );
+  }
 
   if (sortedTasks.length === 0) {
     return (
@@ -85,6 +100,17 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  loadingText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+    marginTop: spacing.md,
   },
 });
 

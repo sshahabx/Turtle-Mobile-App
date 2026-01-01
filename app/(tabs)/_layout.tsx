@@ -8,12 +8,15 @@
  * - 1.3: Apply Outfit font to tab labels
  * - 3.1: Use zinc-based color palette
  * - 3.1, 3.2, 3.3, 3.4: Tab bar alignment and safe area handling
+ * - Career Journey 1.1: Journey tab accessible as top-level tab (auth-only)
+ * - Career Journey 1.2: Journey tab NOT visible when not authenticated
  */
 
 import { Tabs } from "expo-router";
 import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../hooks/useTheme";
+import { useAuth } from "../../features/auth/hooks/useAuth";
 import { fontFamily, spacing, layoutSpacing } from "../../theme";
 
 /**
@@ -74,11 +77,23 @@ function TabIcon({ name, focused, colors }: { name: string; focused: boolean; co
     );
   }
 
+  if (name === "journey") {
+    return (
+      <View style={styles.iconContainer}>
+        <View style={[styles.journeyTree, { borderColor: color }]}>
+          <View style={[styles.journeyTrunk, { backgroundColor: color }]} />
+          <View style={[styles.journeyCanopy, { backgroundColor: color }]} />
+        </View>
+      </View>
+    );
+  }
+
   return null;
 }
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  const { isAuthenticated } = useAuth();
   const insets = useSafeAreaInsets();
   
   // Calculate proper bottom padding based on safe area
@@ -156,11 +171,22 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused }) => <TabIcon name="habits" focused={focused} colors={colors} />,
         }}
       />
+      {/* Profile tab - hidden from tab bar, accessible via sidebar */}
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
           tabBarIcon: ({ focused }) => <TabIcon name="profile" focused={focused} colors={colors} />,
+          href: null, // Hide from tab bar
+        }}
+      />
+      {/* Journey tab - hidden from tab bar, accessible via sidebar (auth-only) */}
+      <Tabs.Screen
+        name="journey"
+        options={{
+          title: "Journey",
+          tabBarIcon: ({ focused }) => <TabIcon name="journey" focused={focused} colors={colors} />,
+          href: null, // Hide from tab bar, accessible via sidebar
         }}
       />
     </Tabs>
@@ -232,5 +258,23 @@ const styles = StyleSheet.create({
     height: 8,
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
+  },
+  journeyTree: {
+    width: 20,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  journeyTrunk: {
+    width: 4,
+    height: 8,
+    borderRadius: 1,
+  },
+  journeyCanopy: {
+    position: "absolute",
+    top: 0,
+    width: 16,
+    height: 14,
+    borderRadius: 8,
   },
 });

@@ -3,12 +3,14 @@
  */
 
 import React, { memo, useCallback, useMemo } from 'react';
-import { View, RefreshControl, StyleSheet } from 'react-native';
+import { View, RefreshControl, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Habit } from '../../types';
 import { sortHabitsByCompletion } from '../../features/habits/utils/habitUtils';
 import { HabitCard } from './HabitCard';
 import { EmptyState } from '../dashboard/EmptyState';
+import { useTheme } from '../../hooks/useTheme';
+import { fontFamily, fontSize, spacing } from '../../theme';
 
 export interface HabitListProps {
   habits: Habit[];
@@ -17,6 +19,7 @@ export interface HabitListProps {
   onAddHabit?: () => void;
   isRefreshing?: boolean;
   onRefresh?: () => void;
+  isLoading?: boolean;
   completingHabitId?: string | null;
   emptyTitle?: string;
   emptyMessage?: string;
@@ -32,10 +35,12 @@ export const HabitList = memo(function HabitList({
   onAddHabit,
   isRefreshing = false,
   onRefresh,
+  isLoading = false,
   completingHabitId = null,
   emptyTitle = 'No habits yet',
   emptyMessage = 'Build consistent routines by adding your first habit.',
 }: HabitListProps) {
+  const { colors } = useTheme();
   const sortedHabits = useMemo(() => sortHabitsByCompletion(habits), [habits]);
 
   const renderItem = useCallback(({ item }: { item: Habit }) => (
@@ -48,6 +53,16 @@ export const HabitList = memo(function HabitList({
   ), [onHabitPress, onComplete, completingHabitId]);
 
   const keyExtractor = useCallback((item: Habit) => item.id, []);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading habits...</Text>
+      </View>
+    );
+  }
 
   if (sortedHabits.length === 0) {
     return (
@@ -89,6 +104,17 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  loadingText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+    marginTop: spacing.md,
   },
 });
 

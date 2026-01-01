@@ -1,8 +1,8 @@
 /**
  * StatusStats Component
  * 
- * Displays job application counts by status in an engaging grid layout.
- * Only shows statuses that have applications, making the dashboard cleaner.
+ * Compact horizontal pipeline showing all 5 statuses as icon-only indicators.
+ * Clean, minimal design with counts displayed below icons.
  */
 
 import React, { memo, useRef, useEffect } from 'react';
@@ -12,28 +12,42 @@ import { useTheme } from '../../hooks/useTheme';
 import { fontFamily, fontSize, spacing, borderRadius, statusColors } from '../../theme';
 import { JobStatus } from '../../types';
 
-interface StatusCount {
-  status: JobStatus;
-  count: number;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}
-
-const STATUS_CONFIG: Record<JobStatus, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-  [JobStatus.ACCEPTED]: { label: 'Accepted', icon: 'checkmark-circle', color: statusColors.accepted },
-  [JobStatus.OFFERED]: { label: 'Offered', icon: 'briefcase', color: statusColors.offered },
-  [JobStatus.INTERVIEWING]: { label: 'Interviewing', icon: 'people', color: statusColors.interviewing },
-  [JobStatus.APPLIED]: { label: 'Applied', icon: 'send', color: statusColors.applied },
-  [JobStatus.PENDING]: { label: 'Pending', icon: 'time', color: statusColors.pending },
-  [JobStatus.REJECTED]: { label: 'Rejected', icon: 'close-circle', color: statusColors.rejected },
+const STATUS_CONFIG: Record<JobStatus, { 
+  icon: keyof typeof Ionicons.glyphMap; 
+  color: string;
+}> = {
+  [JobStatus.PENDING]: { 
+    icon: 'hourglass-outline', 
+    color: statusColors.pending,
+  },
+  [JobStatus.APPLIED]: { 
+    icon: 'paper-plane-outline', 
+    color: statusColors.applied,
+  },
+  [JobStatus.INTERVIEWING]: { 
+    icon: 'chatbubbles-outline', 
+    color: statusColors.interviewing,
+  },
+  [JobStatus.OFFERED]: { 
+    icon: 'gift-outline', 
+    color: statusColors.offered,
+  },
+  [JobStatus.REJECTED]: { 
+    icon: 'close-circle-outline', 
+    color: statusColors.rejected,
+  },
+  [JobStatus.ACCEPTED]: { 
+    icon: 'trophy-outline', 
+    color: statusColors.accepted,
+  },
 };
 
-// Priority order for display (excluding ACCEPTED - shown in separate banner)
-const STATUS_PRIORITY: JobStatus[] = [
-  JobStatus.OFFERED,
-  JobStatus.INTERVIEWING,
-  JobStatus.APPLIED,
+// Fixed order: Pending → Applied → Interviewing → Offered → Rejected
+const PIPELINE_ORDER: JobStatus[] = [
   JobStatus.PENDING,
+  JobStatus.APPLIED,
+  JobStatus.INTERVIEWING,
+  JobStatus.OFFERED,
   JobStatus.REJECTED,
 ];
 
@@ -46,117 +60,96 @@ export const StatusStats = memo(function StatusStats({
   statusCounts, 
   onStatusPress 
 }: StatusStatsProps) {
-  const { colors } = useTheme();
-  const fadeAnims = useRef(STATUS_PRIORITY.map(() => new Animated.Value(0))).current;
-  const scaleAnims = useRef(STATUS_PRIORITY.map(() => new Animated.Value(0.8))).current;
-
-  // Filter to only show statuses with counts > 0
-  const activeStatuses = STATUS_PRIORITY.filter(status => statusCounts[status] > 0);
+  const { colors, isDark } = useTheme();
+  const scaleAnims = useRef(PIPELINE_ORDER.map(() => new Animated.Value(0.8))).current;
+  const fadeAnims = useRef(PIPELINE_ORDER.map(() => new Animated.Value(0))).current;
 
   // Staggered entrance animation
   useEffect(() => {
-    const animations = activeStatuses.map((_, index) => {
-      const originalIndex = STATUS_PRIORITY.indexOf(activeStatuses[index]);
-      return Animated.parallel([
-        Animated.timing(fadeAnims[originalIndex], {
-          toValue: 1,
-          duration: 300,
-          delay: index * 80,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnims[originalIndex], {
+    const animations = PIPELINE_ORDER.map((_, index) => 
+      Animated.parallel([
+        Animated.spring(scaleAnims[index], {
           toValue: 1,
           friction: 8,
-          tension: 40,
-          delay: index * 80,
+          tension: 50,
+          delay: index * 60,
           useNativeDriver: true,
         }),
-      ]);
-    });
-
+        Animated.timing(fadeAnims[index], {
+          toValue: 1,
+          duration: 300,
+          delay: index * 60,
+          useNativeDriver: true,
+        }),
+      ])
+    );
     Animated.parallel(animations).start();
-  }, [activeStatuses.length]);
-
-  if (activeStatuses.length === 0) {
-    return null;
-  }
-
-  // Calculate total for percentage display (excluding ACCEPTED)
-  const total = STATUS_PRIORITY.reduce((sum, status) => sum + (statusCounts[status] || 0), 0);
+  }, []);
 
   return (
     <View style={styles.container}>
       <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
         YOUR PIPELINE
       </Text>
-      
-      <View style={styles.grid}>
-        {activeStatuses.map((status, displayIndex) => {
+      <View style={[
+        styles.pipelineRow,
+        { 
+          backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+          borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+        }
+      ]}>
+        {PIPELINE_ORDER.map((status, index) => {
           const config = STATUS_CONFIG[status];
-          const count = statusCounts[status];
-          const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
-          const originalIndex = STATUS_PRIORITY.indexOf(status);
+          const count = statusCounts[status] || 0;
+          const hasItems = count > 0;
 
           return (
             <Animated.View
               key={status}
               style={[
-                styles.statCardWrapper,
+                styles.statusItem,
                 {
-                  opacity: fadeAnims[originalIndex],
-                  transform: [{ scale: scaleAnims[originalIndex] }],
+                  opacity: fadeAnims[index],
+                  transform: [{ scale: scaleAnims[index] }],
                 }
               ]}
             >
               <TouchableOpacity
-                style={[
-                  styles.statCard,
-                  { 
-                    backgroundColor: colors.surface, 
-                    borderColor: colors.border,
-                  }
-                ]}
                 onPress={() => onStatusPress?.(status)}
                 activeOpacity={0.7}
+                style={styles.touchable}
               >
-                {/* Color accent bar */}
-                <View style={[styles.accentBar, { backgroundColor: config.color }]} />
-                
-                {/* Content */}
-                <View style={styles.cardContent}>
-                  <View style={styles.topRow}>
-                    <View style={[styles.iconContainer, { backgroundColor: `${config.color}20` }]}>
-                      <Ionicons name={config.icon} size={18} color={config.color} />
-                    </View>
-                    <View style={[styles.percentBadge, { backgroundColor: `${config.color}20` }]}>
-                      <Text style={[styles.percentText, { color: config.color }]}>
-                        {percentage}%
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  <Text style={[styles.count, { color: config.color }]}>
-                    {count}
-                  </Text>
-                  
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>
-                    {config.label}
-                  </Text>
+                <View style={[
+                  styles.iconCircle,
+                  { 
+                    backgroundColor: hasItems ? `${config.color}15` : 'transparent',
+                    borderColor: hasItems ? config.color : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                  }
+                ]}>
+                  <Ionicons 
+                    name={hasItems ? config.icon.replace('-outline', '') as keyof typeof Ionicons.glyphMap : config.icon} 
+                    size={18} 
+                    color={hasItems ? config.color : colors.textMuted} 
+                  />
                 </View>
+                <Text style={[
+                  styles.countText,
+                  { color: hasItems ? config.color : colors.textMuted }
+                ]}>
+                  {count}
+                </Text>
               </TouchableOpacity>
+              
+              {/* Connector line between statuses */}
+              {index < PIPELINE_ORDER.length - 1 && (
+                <View style={[
+                  styles.connector,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }
+                ]} />
+              )}
             </Animated.View>
           );
         })}
-      </View>
-
-      {/* Total summary */}
-      <View style={[styles.totalContainer, { backgroundColor: colors.backgroundSecondary }]}>
-        <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>
-          Total Applications
-        </Text>
-        <Text style={[styles.totalCount, { color: colors.text }]}>
-          {total}
-        </Text>
       </View>
     </View>
   );
@@ -166,82 +159,54 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing.lg,
     marginTop: spacing.md,
-    marginBottom: spacing.lg,
+    marginBottom: -spacing.sm,
   },
   sectionTitle: {
     fontFamily: fontFamily.medium,
     fontSize: fontSize.xs,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: spacing.md,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -spacing.xs,
-  },
-  statCardWrapper: {
-    width: '50%',
-    paddingHorizontal: spacing.xs,
     marginBottom: spacing.sm,
   },
-  statCard: {
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  accentBar: {
-    height: 4,
-  },
-  cardContent: {
-    padding: spacing.md,
-  },
-  topRow: {
+  pipelineRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
   },
-  iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  statusItem: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  percentBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.full,
-  },
-  percentText: {
-    fontFamily: fontFamily.semibold,
-    fontSize: fontSize.xs,
-  },
-  count: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize['2xl'],
-  },
-  label: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.sm,
-    marginTop: 2,
-  },
-  totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  touchable: {
     alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    marginTop: spacing.sm,
   },
-  totalLabel: {
-    fontFamily: fontFamily.medium,
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countText: {
+    fontFamily: fontFamily.semibold,
     fontSize: fontSize.sm,
+    marginTop: 4,
   },
-  totalCount: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.lg,
+  connector: {
+    position: 'absolute',
+    right: -2,
+    top: '50%',
+    marginTop: -8,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
 });
 

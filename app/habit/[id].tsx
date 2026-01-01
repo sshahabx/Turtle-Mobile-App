@@ -80,6 +80,11 @@ export default function HabitDetailScreen() {
   };
 
   const handleDelete = () => {
+    if (!id) {
+      Alert.alert('Error', 'Habit ID is missing.');
+      return;
+    }
+    
     Alert.alert('Delete Habit', 'Are you sure you want to delete this habit?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -87,25 +92,28 @@ export default function HabitDetailScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await deleteHabit(id!);
+            await deleteHabit(id);
             await success();
             router.back();
           } catch (err) {
+            console.error('Delete habit error:', err);
             await hapticError();
-            Alert.alert('Error', 'Failed to delete habit.');
+            Alert.alert('Error', 'Failed to delete habit. Please try again.');
           }
         },
       },
     ]);
   };
 
-  if (isLoading) {
+  // Show loading state when fetching OR when data hasn't arrived yet (no error)
+  if (isLoading || (!habit && !error)) {
     return (
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={handleClose} />
         <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading habit...</Text>
           </View>
         </View>
       </View>
@@ -239,6 +247,11 @@ const styles = StyleSheet.create({
   notFoundText: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.base,
+  },
+  loadingText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+    marginTop: spacing.md,
   },
   goBackButton: {
     marginTop: spacing.lg,

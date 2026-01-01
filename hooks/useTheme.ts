@@ -27,6 +27,7 @@ export interface ThemeColors {
   // Text colors
   text: string;
   textSecondary: string;
+  textMuted: string;
   textTertiary: string;
   textInverse: string;
   
@@ -62,6 +63,7 @@ const lightColors: ThemeColors = {
   // Text colors - zinc-based for consistency with web app
   text: '#18181b',           // zinc-900
   textSecondary: '#52525b',  // zinc-600
+  textMuted: '#71717a',      // zinc-500
   textTertiary: '#71717a',   // zinc-500
   textInverse: '#ffffff',
   
@@ -96,6 +98,7 @@ const darkColors: ThemeColors = {
   // Text colors - zinc-based for consistency with web app
   text: '#f4f4f5',           // zinc-100
   textSecondary: '#a1a1aa',  // zinc-400
+  textMuted: '#71717a',      // zinc-500
   textTertiary: '#71717a',   // zinc-500
   textInverse: '#18181b',    // zinc-900
   

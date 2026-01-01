@@ -12,3 +12,5 @@ export { CollapsibleStatusSection } from './CollapsibleStatusSection';
 export { JobCard } from './JobCard';
 export { EmptyState } from './EmptyState';
 export { GoalAchievementNotification } from './GoalAchievementNotification';
+export { ProfileSidebar } from './ProfileSidebar';
+export { StatusStats } from './StatusStats';

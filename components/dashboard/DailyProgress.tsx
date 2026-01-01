@@ -70,7 +70,8 @@ export function DailyProgress({ jobs, dailyGoal, onGoalPress }: DailyProgressPro
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.lg,
     borderBottomWidth: 1,
   },
   header: {
