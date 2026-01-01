@@ -15,9 +15,11 @@ import { fontFamily, fontSize, lineHeight } from '../../theme/typography';
 import { lightColors, darkColors, semanticColors } from '../../theme/colors';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends Omit<TouchableOpacityProps, 'disabled'> {
   variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean;
   disabled?: boolean;
   children: React.ReactNode;
@@ -67,8 +69,30 @@ const getVariantStyles = (
   }
 };
 
+const getSizeStyles = (size: ButtonSize): { container: ViewStyle; text: TextStyle } => {
+  switch (size) {
+    case 'sm':
+      return {
+        container: { paddingHorizontal: 12, paddingVertical: 8 },
+        text: { fontSize: fontSize.sm },
+      };
+    case 'lg':
+      return {
+        container: { paddingHorizontal: 20, paddingVertical: 14 },
+        text: { fontSize: fontSize.lg },
+      };
+    case 'md':
+    default:
+      return {
+        container: { paddingHorizontal: 16, paddingVertical: 10 },
+        text: { fontSize: fontSize.base },
+      };
+  }
+};
+
 export function Button({
   variant = 'primary',
+  size = 'md',
   loading = false,
   disabled = false,
   children,
@@ -79,12 +103,14 @@ export function Button({
   const { isDark, colors } = useTheme();
   const isDisabled = disabled || loading;
   const variantStyles = getVariantStyles(variant, isDark);
+  const sizeStyles = getSizeStyles(size);
 
   return (
     <TouchableOpacity
       style={[
         styles.button,
         variantStyles.container,
+        sizeStyles.container,
         isDisabled && styles.disabled,
         style,
       ]}
@@ -99,12 +125,12 @@ export function Button({
             size="small"
             color={variant === 'primary' || variant === 'destructive' ? '#ffffff' : colors.primary}
           />
-          <Text style={[styles.text, variantStyles.text, { marginLeft: 8 }]}>
+          <Text style={[styles.text, variantStyles.text, sizeStyles.text, { marginLeft: 8 }]}>
             {children}
           </Text>
         </View>
       ) : (
-        <Text style={[styles.text, variantStyles.text]}>{children}</Text>
+        <Text style={[styles.text, variantStyles.text, sizeStyles.text]}>{children}</Text>
       )}
     </TouchableOpacity>
   );
@@ -112,8 +138,6 @@ export function Button({
 
 const styles = StyleSheet.create({
   button: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     borderRadius: componentBorderRadius.button, // 12px as per requirements
     flexDirection: 'row',
     alignItems: 'center',
@@ -121,7 +145,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontFamily: fontFamily.semibold, // Outfit-SemiBold as per requirements
-    fontSize: fontSize.base,
     lineHeight: fontSize.base * lineHeight.tight,
   },
   loadingContainer: {

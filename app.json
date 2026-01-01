@@ -46,7 +46,9 @@
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
-        "VIBRATE"
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM"
       ],
       "splash": {
         "image": "./assets/logo.png",
@@ -68,8 +70,24 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/logo.png",
+          "color": "#ffffff",
+          "defaultChannel": "default",
+          "sounds": [],
+          "enableBackgroundRemoteNotifications": false
+        }
+      ]
     ],
+    "notification": {
+      "icon": "./assets/logo.png",
+      "color": "#10B981",
+      "androidMode": "default",
+      "androidCollapsedTitle": "Turtle"
+    },
     "extra": {
       "eas": {
         "projectId": "your-project-id"

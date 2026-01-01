@@ -6,3 +6,4 @@
 
 export { useAuthStore } from './authStore';
 export { useUIStore, type SortBy, type ViewMode } from './uiStore';
+export { useNotificationStore, MAX_NOTIFICATIONS } from './notificationStore';

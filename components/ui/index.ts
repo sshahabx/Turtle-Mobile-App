@@ -12,3 +12,5 @@ export { SearchBar, type SearchBarProps } from './SearchBar';
 export { DropdownSelector, type DropdownSelectorProps, type DropdownOption } from './DropdownSelector';
 export { LimitBanner, type LimitBannerProps } from './LimitBanner';
 export { UpgradePrompt, type UpgradePromptProps } from './UpgradePrompt';
+export { NotificationBadge, type NotificationBadgeProps, formatBadgeCount, shouldShowBadge } from './NotificationBadge';
+export { NotificationIcon, type NotificationIconProps } from './NotificationIcon';

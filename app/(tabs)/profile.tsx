@@ -1,19 +1,22 @@
 /**
  * Profile Screen
  * 
- * User profile with settings, theme toggle, and sign out.
+ * Modern, minimalistic user profile with settings and account management.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../features/auth/hooks/useAuth';
+import { useJobs } from '../../features/jobs/hooks/useJobs';
+import { useGoal } from '../../features/user/hooks/useGoal';
 import { fontFamily, fontSize, spacing, borderRadius } from '../../theme';
+import { NotificationPreferences } from '../../components/notifications';
 import { signOut, getStoredUser } from '../../features/auth/services/authService';
 import * as db from '../../services/database';
-import { useEffect, useState } from 'react';
 
 interface User {
   id: string;
@@ -26,6 +29,8 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { colors, isDark, themeMode, setThemeMode } = useTheme();
   const { isAuthenticated, isOfflineMode } = useAuth();
+  const { jobs } = useJobs();
+  const { dailyGoal } = useGoal();
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -59,6 +64,12 @@ export default function ProfileScreen() {
     router.push('/modals/goal-setting');
   };
 
+  const getThemeIcon = (): keyof typeof Ionicons.glyphMap => {
+    if (themeMode === 'light') return 'sunny-outline';
+    if (themeMode === 'dark') return 'moon-outline';
+    return 'phone-portrait-outline';
+  };
+
   const getThemeLabel = () => {
     if (themeMode === 'light') return 'Light';
     if (themeMode === 'dark') return 'Dark';
@@ -72,17 +83,20 @@ export default function ProfileScreen() {
     setThemeMode(modes[nextIndex]);
   };
 
+  // Calculate stats
+  const totalJobs = jobs.length;
+  const todayJobs = jobs.filter(job => {
+    const today = new Date();
+    const jobDate = new Date(job.createdAt);
+    return jobDate.toDateString() === today.toDateString();
+  }).length;
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Profile</Text>
-      </View>
-
-      <ScrollView style={styles.scrollView}>
-        {/* User Info */}
-        <View style={[styles.userSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Profile Header */}
+        <View style={styles.profileHeader}>
+          <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
             {user?.image ? (
               <Image source={{ uri: user.image }} style={styles.avatarImage} />
             ) : (
@@ -91,83 +105,111 @@ export default function ProfileScreen() {
               </Text>
             )}
           </View>
-          <View style={styles.userInfo}>
-            <Text style={[styles.userName, { color: colors.text }]}>
-              {user?.name || 'Guest User'}
-            </Text>
-            <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
-              {user?.email || (isOfflineMode ? 'Offline Mode' : 'Not signed in')}
-            </Text>
+          <Text style={[styles.userName, { color: colors.text }]}>
+            {user?.name || 'Guest User'}
+          </Text>
+          <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
+            {user?.email || (isOfflineMode ? 'Offline Mode' : 'Not signed in')}
+          </Text>
+          
+          {/* Quick Stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: colors.text }]}>{totalJobs}</Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Total Jobs</Text>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: colors.text }]}>{todayJobs}</Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Today</Text>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: colors.primary }]}>{dailyGoal}</Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Goal</Text>
+            </View>
           </View>
         </View>
 
-        {/* Settings */}
+        {/* Settings Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Settings</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>Preferences</Text>
           
-          {/* Theme */}
-          <TouchableOpacity 
-            style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={cycleTheme}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                <View style={[styles.themeIcon, { backgroundColor: isDark ? colors.text : colors.textSecondary }]} />
+          <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
+            {/* Theme */}
+            <TouchableOpacity style={styles.settingRow} onPress={cycleTheme}>
+              <View style={styles.settingLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}15` }]}>
+                  <Ionicons name={getThemeIcon()} size={18} color={colors.primary} />
+                </View>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>Appearance</Text>
               </View>
-              <Text style={[styles.settingLabel, { color: colors.text }]}>Theme</Text>
-            </View>
-            <Text style={[styles.settingValue, { color: colors.textSecondary }]}>{getThemeLabel()}</Text>
-          </TouchableOpacity>
+              <View style={styles.settingRight}>
+                <Text style={[styles.settingValue, { color: colors.textSecondary }]}>{getThemeLabel()}</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+              </View>
+            </TouchableOpacity>
 
-          {/* Daily Goal */}
-          <TouchableOpacity 
-            style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={handleGoalPress}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                <View style={[styles.targetIcon, { borderColor: colors.primary }]} />
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+            {/* Daily Goal */}
+            <TouchableOpacity style={styles.settingRow} onPress={handleGoalPress}>
+              <View style={styles.settingLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                  <Ionicons name="flag-outline" size={18} color="#f59e0b" />
+                </View>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>Daily Goal</Text>
               </View>
-              <Text style={[styles.settingLabel, { color: colors.text }]}>Daily Goal</Text>
-            </View>
-            <Text style={[styles.settingValue, { color: colors.textSecondary }]}>Set target</Text>
-          </TouchableOpacity>
+              <View style={styles.settingRight}>
+                <Text style={[styles.settingValue, { color: colors.textSecondary }]}>{dailyGoal} apps/day</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Account */}
+        {/* Notifications Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Account</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>Notifications</Text>
+          <NotificationPreferences />
+        </View>
+
+        {/* Account Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>Account</Text>
           
-          {isAuthenticated ? (
-            <TouchableOpacity 
-              style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={handleSignOut}
-            >
-              <View style={styles.settingLeft}>
-                <View style={[styles.settingIcon, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
-                  <View style={[styles.signOutIcon, { backgroundColor: colors.error }]} />
+          <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
+            {isAuthenticated ? (
+              <TouchableOpacity style={styles.settingRow} onPress={handleSignOut}>
+                <View style={styles.settingLeft}>
+                  <View style={[styles.iconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
+                    <Ionicons name="log-out-outline" size={18} color={colors.error} />
+                  </View>
+                  <Text style={[styles.settingLabel, { color: colors.error }]}>Sign Out</Text>
                 </View>
-                <Text style={[styles.settingLabel, { color: colors.error }]}>Sign Out</Text>
-              </View>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity 
-              style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => router.replace('/(auth)/sign-in')}
-            >
-              <View style={styles.settingLeft}>
-                <View style={[styles.settingIcon, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-                  <View style={[styles.signInIcon, { backgroundColor: colors.primary }]} />
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={styles.settingRow} 
+                onPress={() => router.replace('/(auth)/sign-in')}
+              >
+                <View style={styles.settingLeft}>
+                  <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}15` }]}>
+                    <Ionicons name="log-in-outline" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.settingLabel, { color: colors.primary }]}>Sign In</Text>
                 </View>
-                <Text style={[styles.settingLabel, { color: colors.primary }]}>Sign In</Text>
-              </View>
-            </TouchableOpacity>
-          )}
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* App Info */}
-        <View style={styles.appInfo}>
-          <Text style={[styles.appVersion, { color: colors.textTertiary }]}>Turtle v1.0.0</Text>
+        <View style={styles.footer}>
+          <Text style={[styles.appName, { color: colors.textTertiary }]}>Turtle</Text>
+          <Text style={[styles.appVersion, { color: colors.textTertiary }]}>Version 1.0.0</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -178,55 +220,62 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    borderBottomWidth: 1,
-  },
-  headerTitle: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.xl,
-  },
   scrollView: {
     flex: 1,
   },
-  userSection: {
-    flexDirection: 'row',
+  profileHeader: {
     alignItems: 'center',
-    margin: spacing.lg,
-    padding: spacing.lg,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
+    paddingVertical: spacing['2xl'],
+    paddingHorizontal: spacing.lg,
   },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  avatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    marginBottom: spacing.md,
   },
   avatarImage: {
-    width: 60,
-    height: 60,
+    width: 80,
+    height: 80,
   },
   avatarText: {
     fontFamily: fontFamily.bold,
-    fontSize: fontSize['2xl'],
+    fontSize: fontSize['3xl'],
     color: '#fff',
-  },
-  userInfo: {
-    marginLeft: spacing.lg,
-    flex: 1,
   },
   userName: {
     fontFamily: fontFamily.semibold,
-    fontSize: fontSize.lg,
+    fontSize: fontSize.xl,
+    marginBottom: spacing.xxs,
   },
   userEmail: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.sm,
-    marginTop: 2,
+    marginBottom: spacing.xl,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statItem: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  statValue: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize['2xl'],
+  },
+  statLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.xs,
+    marginTop: spacing.xxs,
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
   },
   section: {
     paddingHorizontal: spacing.lg,
@@ -234,52 +283,39 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: fontFamily.medium,
-    fontSize: fontSize.sm,
-    marginBottom: spacing.sm,
+    fontSize: fontSize.xs,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
   },
-  settingItem: {
+  settingsCard: {
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+  },
+  settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    marginBottom: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
   },
   settingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  settingIcon: {
+  settingRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  iconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.md,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
-  },
-  themeIcon: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-  },
-  targetIcon: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-  },
-  signOutIcon: {
-    width: 14,
-    height: 3,
-    borderRadius: 1,
-  },
-  signInIcon: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
   },
   settingLabel: {
     fontFamily: fontFamily.medium,
@@ -289,12 +325,21 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.sm,
   },
-  appInfo: {
+  divider: {
+    height: 1,
+    marginLeft: 60,
+  },
+  footer: {
     alignItems: 'center',
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing['2xl'],
+  },
+  appName: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.sm,
   },
   appVersion: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.xs,
+    marginTop: spacing.xxs,
   },
 });

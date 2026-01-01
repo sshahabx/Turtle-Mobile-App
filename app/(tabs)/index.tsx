@@ -33,6 +33,8 @@ import { StatusStats } from '../../components/dashboard/StatusStats';
 import { AcceptedJobBanner } from '../../components/dashboard/AcceptedJobBanner';
 import { LimitBanner } from '../../components/ui/LimitBanner';
 import { UpgradePrompt } from '../../components/ui/UpgradePrompt';
+import { NotificationIcon } from '../../components/ui/NotificationIcon';
+import { useNotificationStore } from '../../store/notificationStore';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -40,7 +42,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 export default function DashboardScreen() {
-  const { jobs, isLoading, refetch } = useJobs();
+  const { jobs, isLoading, refetch, deleteJob } = useJobs();
   const { dailyGoal } = useGoal();
   const { user } = useAuth();
   const router = useRouter();
@@ -49,6 +51,9 @@ export default function DashboardScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const searchInputRef = useRef<TextInput>(null);
+  
+  // Get unread notification count from store (Requirements 1.1, 1.2)
+  const unreadCount = useNotificationStore((state) => state.getUnreadCount());
   
   // Track expanded/collapsed state for each status section
   const [expandedSections, setExpandedSections] = useState<Record<JobStatus, boolean>>({
@@ -94,6 +99,15 @@ export default function DashboardScreen() {
     router.push('/modals/goal-setting');
   };
 
+  // Handle delete accepted job
+  const handleDeleteAcceptedJob = useCallback(async (jobId: string) => {
+    try {
+      await deleteJob(jobId);
+    } catch (error) {
+      console.error('Failed to delete job:', error);
+    }
+  }, [deleteJob]);
+
   // Toggle expanded/collapsed state for a status section
   const handleToggleSection = useCallback((status: JobStatus) => {
     setExpandedSections(prev => ({
@@ -130,6 +144,11 @@ export default function DashboardScreen() {
     setIsSearchExpanded(false);
     setSearchQuery('');
   }, []);
+
+  // Handle notification icon press - open notification center (Requirement 1.4)
+  const handleNotificationPress = useCallback(() => {
+    router.push('/modals/notifications');
+  }, [router]);
 
   // Handle status card press - scroll to that section
   const handleStatusPress = useCallback((status: JobStatus) => {
@@ -199,19 +218,25 @@ export default function DashboardScreen() {
             </View>
           </View>
         ) : (
-          // Normal header with search icon
+          // Normal header with search icon and notification icon
           <>
             <View>
               <Text style={[styles.welcomeText, { color: colors.textSecondary }]}>Welcome back,</Text>
               <Text style={[styles.titleText, { color: colors.text }]}>{user?.name || 'Job Seeker'}</Text>
             </View>
-            <TouchableOpacity 
-              onPress={handleSearchToggle}
-              style={[styles.searchIconButton, { backgroundColor: colors.backgroundSecondary }]}
-              hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-            >
-              <Ionicons name="search" size={22} color={colors.textSecondary} />
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <NotificationIcon
+                unreadCount={unreadCount}
+                onPress={handleNotificationPress}
+              />
+              <TouchableOpacity 
+                onPress={handleSearchToggle}
+                style={[styles.searchIconButton, { backgroundColor: colors.backgroundSecondary }]}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+              >
+                <Ionicons name="search" size={22} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
           </>
         )}
       </View>
@@ -290,7 +315,8 @@ export default function DashboardScreen() {
             {acceptedJob && (
               <AcceptedJobBanner 
                 job={acceptedJob} 
-                onPress={handleJobPress} 
+                onPress={handleJobPress}
+                onDelete={handleDeleteAcceptedJob}
               />
             )}
 
@@ -429,6 +455,11 @@ const styles = StyleSheet.create({
   titleText: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.xl,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   searchIconButton: {
     width: 44,

@@ -4,6 +4,9 @@
  * Manages job data with proper separation between:
  * - Authenticated users: Data from backend API
  * - Offline users: Data from local AsyncStorage
+ * 
+ * Requirements:
+ * - 4.1: Create job status change notifications with job title, company, and new status
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +14,7 @@ import { Job, JobStatus, JobCreateInput, JobUpdateInput } from '../../../types';
 import * as db from '../../../services/database';
 import { jobsService } from '../services/jobsService';
 import { useAuth } from '../../auth/hooks/useAuth';
+import { createJobStatusNotification } from '../../../services/notifications/notificationService';
 
 const JOBS_KEY = ['jobs'];
 
@@ -60,7 +64,12 @@ export const useJobs = () => {
       }
       return jobsService.updateJob(id, data);
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (updatedJob, variables) => {
+      // Trigger job status change notification if status was updated (Requirement 4.1)
+      if (variables.status) {
+        createJobStatusNotification(updatedJob, variables.status);
+      }
+      
       queryClient.invalidateQueries({ queryKey: JOBS_KEY });
       queryClient.invalidateQueries({ queryKey: ['job', variables.id] });
     },
@@ -91,7 +100,10 @@ export const useJobs = () => {
       }
       return jobsService.updateJob(id, { status });
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (updatedJob, variables) => {
+      // Trigger job status change notification (Requirement 4.1)
+      createJobStatusNotification(updatedJob, variables.status);
+      
       queryClient.invalidateQueries({ queryKey: JOBS_KEY });
       queryClient.invalidateQueries({ queryKey: ['job', variables.id] });
     },

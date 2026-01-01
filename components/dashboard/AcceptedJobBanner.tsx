@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Job } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
@@ -18,11 +18,27 @@ import { fontFamily, fontSize, spacing, borderRadius, statusColors } from '../..
 interface AcceptedJobBannerProps {
   job: Job;
   onPress: (jobId: string) => void;
+  onDelete?: (jobId: string) => void;
 }
 
-export function AcceptedJobBanner({ job, onPress }: AcceptedJobBannerProps) {
+export function AcceptedJobBanner({ job, onPress, onDelete }: AcceptedJobBannerProps) {
   const { colors } = useTheme();
   const acceptedColor = statusColors.accepted;
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Accepted Offer',
+      `Are you sure you want to delete "${job.title}" at ${job.company}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => onDelete?.(job.id),
+        },
+      ]
+    );
+  };
 
   return (
     <TouchableOpacity
@@ -36,7 +52,18 @@ export function AcceptedJobBanner({ job, onPress }: AcceptedJobBannerProps) {
       <View style={styles.content}>
         <View style={styles.labelRow}>
           <Text style={[styles.label, { color: acceptedColor }]}>Accepted Offer</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          <View style={styles.actions}>
+            {onDelete && (
+              <TouchableOpacity
+                onPress={handleDelete}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.deleteButton}
+              >
+                <Ionicons name="trash-outline" size={18} color={colors.error} />
+              </TouchableOpacity>
+            )}
+            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          </View>
         </View>
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
           {job.title}
@@ -74,6 +101,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  deleteButton: {
+    padding: spacing.xs,
   },
   label: {
     fontFamily: fontFamily.semibold,

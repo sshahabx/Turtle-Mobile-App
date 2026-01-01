@@ -1,5 +1,8 @@
 // Type definitions for JobAppTracker Mobile - Standalone Version
 
+// Note: Notification types are NOT re-exported here to avoid circular dependencies.
+// Import notification types directly from './notifications' or 'types/notifications'
+
 // ============================================================================
 // Job Types
 // ============================================================================

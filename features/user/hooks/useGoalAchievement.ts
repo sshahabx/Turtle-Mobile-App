@@ -5,11 +5,13 @@
  *
  * Requirements:
  * - 6.4: Display celebratory notification when DailyGoal is reached
+ * - 4.5: Create goal achievement celebration notifications
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Job } from '../../../types';
 import { getJobsCreatedToday } from '../../jobs/utils/jobUtils';
+import { createGoalAchievementNotification } from '../../../services/notifications/notificationService';
 
 export interface UseGoalAchievementReturn {
   /** Whether the goal achievement notification should be shown */
@@ -59,6 +61,9 @@ export function useGoalAchievement(
     if (wasBeforeGoal && isAtOrAboveGoal) {
       setShowCelebration(true);
       hasShownCelebrationRef.current = true;
+      
+      // Trigger goal achievement notification (Requirement 4.5)
+      createGoalAchievementNotification(currentCount, dailyGoal);
     }
 
     previousCountRef.current = currentCount;

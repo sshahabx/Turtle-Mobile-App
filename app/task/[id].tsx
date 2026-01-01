@@ -2,10 +2,11 @@
  * Task Detail Screen
  * 
  * Displays as a bottom sheet taking 70% of screen height.
+ * Supports swipe-to-close gesture on the handle area.
  */
 
-import React from 'react';
-import { View, Text, ScrollView, Alert, ActivityIndicator, StyleSheet, Dimensions, Pressable } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, ScrollView, Alert, ActivityIndicator, StyleSheet, Dimensions, Pressable, PanResponder, Animated } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTask, useTasks } from '../../features/tasks/hooks/useTasks';
 import { useHaptics } from '../../hooks';
@@ -16,6 +17,7 @@ import { fontFamily, fontSize, spacing } from '../../theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
+const SWIPE_THRESHOLD = 100;
 
 export default function TaskDetailScreen() {
   const router = useRouter();
@@ -24,6 +26,36 @@ export default function TaskDetailScreen() {
   const { deleteTask, toggleTask, isDeleting } = useTasks();
   const { success, error: hapticError } = useHaptics();
   const { colors, isDark } = useTheme();
+
+  // Swipe-to-close animation
+  const translateY = useRef(new Animated.Value(0)).current;
+  
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 10,
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          translateY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > SWIPE_THRESHOLD) {
+          Animated.timing(translateY, {
+            toValue: MODAL_HEIGHT,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => router.back());
+        } else {
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 8,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   const handleClose = () => {
     router.back();
@@ -98,9 +130,14 @@ export default function TaskDetailScreen() {
   return (
     <View style={styles.overlay}>
       <Pressable style={styles.backdrop} onPress={handleClose} />
-      <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
-        {/* Handle */}
-        <View style={styles.handleContainer}>
+      <Animated.View 
+        style={[
+          styles.container, 
+          { backgroundColor: colors.background, height: MODAL_HEIGHT, transform: [{ translateY }] }
+        ]}
+      >
+        {/* Handle - swipeable */}
+        <View style={styles.handleContainer} {...panResponder.panHandlers}>
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
         </View>
 
@@ -139,20 +176,20 @@ export default function TaskDetailScreen() {
         {/* Footer */}
         <View style={[styles.footer, { borderTopColor: colors.border }]}>
           <View style={styles.toggleButtonWrapper}>
-            <Button onPress={handleToggle}>
+            <Button size="sm" onPress={handleToggle}>
               {isCompleted ? 'Mark as Pending' : 'Mark as Complete'}
             </Button>
           </View>
           <View style={styles.actionButtons}>
             <View style={styles.buttonWrapper}>
-              <Button variant="outline" onPress={handleEdit}>Edit</Button>
+              <Button variant="outline" size="sm" onPress={handleEdit}>Edit</Button>
             </View>
             <View style={styles.buttonWrapper}>
-              <Button variant="destructive" onPress={handleDelete} loading={isDeleting}>Delete</Button>
+              <Button variant="destructive" size="sm" onPress={handleDelete} loading={isDeleting}>Delete</Button>
             </View>
           </View>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }

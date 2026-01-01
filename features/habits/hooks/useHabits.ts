@@ -4,6 +4,11 @@
  * Manages habit data with proper separation between:
  * - Authenticated users: Data from backend API
  * - Offline users: Data from local AsyncStorage
+ * 
+ * Requirements:
+ * - 4.2: Create habit reminder notifications for incomplete habits
+ * - 7.1: Schedule habit reminder notifications for configurable time
+ * - 7.3: Cancel scheduled notifications when item is completed or deleted
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +16,10 @@ import { Habit } from '../../../types';
 import * as db from '../../../services/database';
 import { habitsService } from '../../../services/api/services';
 import { useAuth } from '../../auth/hooks/useAuth';
+import {
+  scheduleHabitReminder,
+  cancelScheduledNotificationForItem,
+} from '../../../services/notifications/notificationService';
 
 const HABITS_KEY = ['habits'];
 
@@ -43,7 +52,11 @@ export const useHabits = () => {
       }
       return habitsService.createHabit(input);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: HABITS_KEY }),
+    onSuccess: async (createdHabit) => {
+      // Schedule habit reminder notification (Requirements 4.2, 7.1)
+      await scheduleHabitReminder(createdHabit);
+      queryClient.invalidateQueries({ queryKey: HABITS_KEY });
+    },
   });
 
   const updateMutation = useMutation({
@@ -61,6 +74,9 @@ export const useHabits = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Cancel any scheduled notification before deleting (Requirement 7.3)
+      await cancelScheduledNotificationForItem('habit', id);
+      
       if (useLocalStorage) {
         return db.deleteHabit(id);
       }
@@ -76,7 +92,15 @@ export const useHabits = () => {
       }
       return habitsService.completeHabit(id);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: HABITS_KEY }),
+    onSuccess: async (completedHabit) => {
+      // Cancel today's notification and reschedule for tomorrow (Requirements 7.1, 7.3)
+      if (completedHabit) {
+        await cancelScheduledNotificationForItem('habit', completedHabit.id);
+        // Reschedule for the next day
+        await scheduleHabitReminder(completedHabit);
+      }
+      queryClient.invalidateQueries({ queryKey: HABITS_KEY });
+    },
   });
 
   return {

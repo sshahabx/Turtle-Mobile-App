@@ -2,10 +2,11 @@
  * Job Detail Screen
  * 
  * Displays as a bottom sheet taking 70% of screen height.
+ * Supports swipe-to-close gesture on the handle area.
  */
 
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Alert, ActivityIndicator, TouchableOpacity, StyleSheet, Dimensions, Pressable } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, ScrollView, Alert, ActivityIndicator, TouchableOpacity, StyleSheet, Dimensions, Pressable, PanResponder, Animated } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useJob } from '../../features/jobs/hooks/useJob';
@@ -22,6 +23,7 @@ import { determineStatusWorkflow } from '../../features/jobs/utils/statusWorkflo
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7; // 70% of screen height
+const SWIPE_THRESHOLD = 100; // Minimum swipe distance to close
 
 export default function JobDetailScreen() {
   const router = useRouter();
@@ -32,6 +34,40 @@ export default function JobDetailScreen() {
   const { colors } = useTheme();
   const { showToast } = useToast();
   const [updatingStatus, setUpdatingStatus] = useState<JobStatus | null>(null);
+
+  // Swipe-to-close animation
+  const translateY = useRef(new Animated.Value(0)).current;
+  
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 10;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          translateY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > SWIPE_THRESHOLD) {
+          Animated.timing(translateY, {
+            toValue: MODAL_HEIGHT,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            router.back();
+          });
+        } else {
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 8,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   const handleClose = () => {
     router.back();
@@ -154,9 +190,14 @@ export default function JobDetailScreen() {
     return (
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={handleClose} />
-        <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
-          {/* Handle */}
-          <View style={styles.handleContainer}>
+        <Animated.View 
+          style={[
+            styles.container, 
+            { backgroundColor: colors.background, height: MODAL_HEIGHT, transform: [{ translateY }] }
+          ]}
+        >
+          {/* Handle - swipeable */}
+          <View style={styles.handleContainer} {...panResponder.panHandlers}>
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
           </View>
 
@@ -241,10 +282,10 @@ export default function JobDetailScreen() {
           {/* Footer */}
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
             <View style={styles.buttonWrapper}>
-              <Button variant="outline" onPress={handleClose}>Close</Button>
+              <Button variant="outline" size="sm" onPress={handleClose}>Close</Button>
             </View>
           </View>
-        </View>
+        </Animated.View>
       </View>
     );
   }
@@ -252,9 +293,14 @@ export default function JobDetailScreen() {
   return (
     <View style={styles.overlay}>
       <Pressable style={styles.backdrop} onPress={handleClose} />
-      <View style={[styles.container, { backgroundColor: colors.background, height: MODAL_HEIGHT }]}>
-        {/* Handle */}
-        <View style={styles.handleContainer}>
+      <Animated.View 
+        style={[
+          styles.container, 
+          { backgroundColor: colors.background, height: MODAL_HEIGHT, transform: [{ translateY }] }
+        ]}
+      >
+        {/* Handle - swipeable */}
+        <View style={styles.handleContainer} {...panResponder.panHandlers}>
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
         </View>
 
@@ -340,13 +386,13 @@ export default function JobDetailScreen() {
         {/* Footer */}
         <View style={[styles.footer, { borderTopColor: colors.border }]}>
           <View style={styles.buttonWrapper}>
-            <Button variant="outline" onPress={handleEdit}>Edit</Button>
+            <Button variant="outline" size="sm" onPress={handleEdit}>Edit</Button>
           </View>
           <View style={styles.buttonWrapper}>
-            <Button variant="destructive" onPress={handleDelete} loading={isDeleting}>Delete</Button>
+            <Button variant="destructive" size="sm" onPress={handleDelete} loading={isDeleting}>Delete</Button>
           </View>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }
